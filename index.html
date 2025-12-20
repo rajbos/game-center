@@ -269,10 +269,13 @@
                 const games = data.games || [];
                 
                 // Clear loading message
-                gameGrid.innerHTML = '';
+                gameGrid.replaceChildren();
                 
                 if (games.length === 0) {
-                    gameGrid.innerHTML = '<div class="error-message">No games available yet. Check back soon!</div>';
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'error-message';
+                    emptyDiv.textContent = 'No games available yet. Check back soon!';
+                    gameGrid.appendChild(emptyDiv);
                     return;
                 }
                 
@@ -317,7 +320,7 @@
                 errorDiv.className = 'error-message';
                 errorDiv.textContent = '⚠️ Error loading games. Please try refreshing the page.';
                 
-                gameGrid.innerHTML = '';
+                gameGrid.replaceChildren();
                 gameGrid.appendChild(errorDiv);
             }
         }
