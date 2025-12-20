@@ -377,12 +377,10 @@
                 return;
             }
             
-            // Navigate to the game using URL API for safe path construction
-            // Convert relative path to absolute by removing the leading ./
+            // Navigate to the game using relative path
+            // This ensures the path works correctly regardless of base path (e.g., /game-center/)
             try {
-                const absolutePath = normalizedPath.replace(/^\.\//, '/');
-                const url = new URL(absolutePath + '/index.html', window.location.origin);
-                window.location.href = url.href;
+                window.location.href = normalizedPath + '/index.html';
             } catch (error) {
                 console.error('Failed to navigate to game:', error);
             }
