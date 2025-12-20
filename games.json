@@ -1,0 +1,11 @@
+{
+  "games": [
+    {
+      "id": "game-1",
+      "name": "Game 1",
+      "description": "Coming Soon...",
+      "status": "In Development",
+      "path": "./games/game-1"
+    }
+  ]
+}
