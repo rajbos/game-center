@@ -294,23 +294,41 @@
         let gameBoard = JSON.parse(JSON.stringify(maze));
         
         // Sound effects using Web Audio API
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioContext = null;
+        let audioInitialized = false;
+        
+        function initAudio() {
+            if (!audioInitialized) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    audioInitialized = true;
+                } catch (e) {
+                    console.warn('Web Audio API not supported');
+                }
+            }
+        }
         
         function playSound(frequency, duration, type = 'sine') {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            if (!audioContext) return;
             
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.value = frequency;
-            oscillator.type = type;
-            
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + duration);
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = type;
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.002, audioContext.currentTime + duration);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + duration);
+            } catch (e) {
+                // Ignore audio errors
+            }
         }
         
         function playMoveSound() {
@@ -593,6 +611,9 @@
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (!gameRunning) return;
+            
+            // Initialize audio on first user interaction
+            initAudio();
             
             switch(e.key) {
                 case 'ArrowUp':
