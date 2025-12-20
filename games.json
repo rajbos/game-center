@@ -2,9 +2,9 @@
   "games": [
     {
       "id": "game-1",
-      "name": "Game 1",
-      "description": "Coming Soon...",
-      "status": "In Development",
+      "name": "Retro Pac-Man",
+      "description": "Classic Pac-Man with emoji sprites! Eat pellets, avoid ghosts, and rack up points in this retro arcade game.",
+      "status": "Ready to Play",
       "path": "./games/game-1",
       "createdWith": "GitHub Copilot Coding Agent",
       "model": "Claude 3.5 Sonnet",

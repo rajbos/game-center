@@ -1,6 +1,6 @@
-# Game 1
+# Retro Pac-Man 👻
 
-This is a placeholder for Game 1.
+A classic Pac-Man style game built with emoji sprites and retro aesthetics!
 
 ## Built with AI
 
@@ -11,31 +11,63 @@ This game was built entirely using **GitHub Copilot Coding Agent** with the **Cl
 This section tracks all PRs that contributed to building this game:
 
 <!-- Add PR links below, with the most recent first -->
-- No PRs yet
+- Initial implementation with full game mechanics
 
-## To Add Your Game
+## How to Play
 
-1. Create your game files in this directory
-2. Add an `index.html` file as the entry point for your game
-3. Update the `/games.json` file in the repository root to include your game details
-4. Document the Coding Agent model used and PRs in this README
+🎮 **Controls:**
+- Use **Arrow Keys** (↑ ↓ ← →) to move your Pac-Man character (😮)
+- Navigate through the maze and eat all the pellets (•) and power pellets (●)
 
-## Game Structure
+🎯 **Objective:**
+- Eat all pellets to complete the level
+- Avoid the ghosts (👻 👾 🤖 💀) or you'll lose a life
+- Score points:
+  - Regular pellets: 10 points
+  - Power pellets: 50 points
+  - Level completion: 200 bonus points
 
-```
-game-1/
-  ├── index.html       (entry point for the game)
-  ├── README.md        (this file - document your AI development process here)
-  ├── styles/          (optional: CSS files)
-  ├── scripts/         (optional: JavaScript files)
-  └── assets/          (optional: images, sounds, etc.)
-```
+❤️ **Lives System:**
+- You start with 3 lives
+- When a ghost catches you, you lose a life and respawn at the starting position
+- Game over when you run out of lives
 
-## Documentation Guidelines
+👻 **Ghost Behavior:**
+- Four different ghosts patrol the maze
+- They have intelligent AI that tracks your position (70% of the time)
+- Each ghost has a unique emoji and color
 
-When building games with GitHub Copilot Coding Agent:
+## Features
 
-1. **Document the Model**: Specify which AI model was used (e.g., "Claude 3.5 Sonnet", "GPT-4", etc.)
-2. **Track PRs**: Add links to all PRs that contributed to this game, with the most recent first
-3. **Update games.json**: Keep the `createdWith`, `model`, and `prLinks` fields up to date
-4. **Explain Unique Features**: Document any interesting AI-assisted development approaches
+✨ **Game Mechanics:**
+- Smooth keyboard-based movement with direction queuing
+- Wall collision detection
+- Ghost AI with pathfinding towards the player
+- Three-life system with respawn
+- Progressive level system
+- Score tracking
+
+🎨 **Visual Design:**
+- Retro arcade aesthetic with neon colors
+- Emoji-based sprites for all game elements
+- Animated player with "chomping" effect
+- Blinking power pellets
+- Blue maze walls with cyan/blue color scheme
+- Glowing text effects
+
+🔊 **Sound Effects:**
+- Movement sounds (retro beeps)
+- Pellet eating sounds (ascending tones)
+- Life loss sounds (descending alarm)
+- Game over sound (dramatic sequence)
+- Level complete sound (victory fanfare)
+- All sounds generated using Web Audio API (no external files needed)
+
+## Technical Details
+
+- Built with vanilla JavaScript (no frameworks)
+- CSS Grid layout for the game board
+- RequestAnimationFrame for smooth game loop
+- Web Audio API for retro sound effects
+- Responsive design with retro styling
+- 19x21 grid maze layout
