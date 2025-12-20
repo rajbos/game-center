@@ -251,7 +251,7 @@
     </div>
 
     <div class="footer">
-        <p>Made with ❤️ and GitHub Copilot | <a href="https://github.com/rajbos/game-center" target="_blank">View on GitHub</a></p>
+        <p>Made with ❤️ and GitHub Copilot | <a href="https://github.com/rajbos/game-center" target="_blank" rel="noopener noreferrer">View on GitHub</a></p>
     </div>
 
     <script>
@@ -312,10 +312,10 @@
             } catch (error) {
                 console.error('Error loading games:', error);
                 
-                // Create error message safely to prevent XSS
+                // Create error message safely - don't expose error details to users
                 const errorDiv = document.createElement('div');
                 errorDiv.className = 'error-message';
-                errorDiv.textContent = `⚠️ Error loading games: ${error.message}. Please try refreshing the page.`;
+                errorDiv.textContent = '⚠️ Error loading games. Please try refreshing the page.';
                 
                 gameGrid.innerHTML = '';
                 gameGrid.appendChild(errorDiv);
@@ -326,8 +326,15 @@
             // For now, just show an alert. Later this will navigate to the actual game
             alert(`🎮 ${gameId} is coming soon! Stay tuned!`);
             
-            // In the future, this could navigate to:
-            // window.location.href = `${gamePath}/index.html`;
+            // In the future, implement navigation with proper path validation:
+            // 1. Validate gamePath against a whitelist from games.json
+            // 2. Sanitize the path to prevent directory traversal
+            // 3. Use URL API to safely construct the path
+            // Example:
+            // if (isValidGamePath(gamePath)) {
+            //     const url = new URL(`${gamePath}/index.html`, window.location.origin);
+            //     window.location.href = url.href;
+            // }
         }
 
         // Load games when the page loads
