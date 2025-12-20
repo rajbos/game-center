@@ -168,9 +168,10 @@ async function runTests() {
               // Normalize path to URL format
               let gamePath = game.path;
               if (gamePath.startsWith('./')) {
-                gamePath = gamePath.substring(1);
-              } else if (!gamePath.startsWith('/')) {
-                gamePath = '/' + gamePath;
+                gamePath = gamePath.substring(2); // Remove './' prefix
+              }
+              if (!gamePath.startsWith('/')) {
+                gamePath = '/' + gamePath; // Ensure leading slash
               }
               const gameIndexPath = `${gamePath}/index.html`;
               const gameResponse = await testRequest(gameIndexPath);

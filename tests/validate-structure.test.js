@@ -126,12 +126,8 @@ if (gamesData && Array.isArray(gamesData.games)) {
     
     // Test game directory and files exist
     if (game.path) {
-      // Normalize path - handle ./, ../, and absolute paths
-      let normalizedPath = game.path;
-      if (normalizedPath.startsWith('./')) {
-        normalizedPath = normalizedPath.substring(2);
-      }
-      const gamePath = path.resolve(repoRoot, normalizedPath);
+      // Normalize and resolve path - path.resolve handles ./, ../, and absolute paths
+      const gamePath = path.resolve(repoRoot, game.path);
       
       test(`${gamePrefix}: directory exists at ${game.path}`, () => {
         return fs.existsSync(gamePath) && fs.statSync(gamePath).isDirectory();
