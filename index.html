@@ -361,18 +361,28 @@
         }
 
         function playGame(gameId, gamePath) {
-            // For now, just show an alert. Later this will navigate to the actual game
-            alert(`🎮 ${gameId} is coming soon! Stay tuned!`);
+            // Validate and sanitize the game path
+            if (!gamePath || typeof gamePath !== 'string') {
+                console.error('Invalid game path');
+                return;
+            }
             
-            // In the future, implement navigation with proper path validation:
-            // 1. Validate gamePath against a whitelist from games.json
-            // 2. Sanitize the path to prevent directory traversal
-            // 3. Use URL API to safely construct the path
-            // Example:
-            // if (isValidGamePath(gamePath)) {
-            //     const url = new URL(`${gamePath}/index.html`, window.location.origin);
-            //     window.location.href = url.href;
-            // }
+            // Remove any potential directory traversal attempts
+            const sanitizedPath = gamePath.replace(/\.\./g, '');
+            
+            // Ensure the path starts with ./games/ for security
+            if (!sanitizedPath.startsWith('./games/')) {
+                console.error('Game path must be within games directory');
+                return;
+            }
+            
+            // Navigate to the game using URL API for safe path construction
+            try {
+                const url = new URL(`${sanitizedPath}/index.html`, window.location.href);
+                window.location.href = url.href;
+            } catch (error) {
+                console.error('Failed to navigate to game:', error);
+            }
         }
 
         // Load games when the page loads
