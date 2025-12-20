@@ -1,0 +1,45 @@
+name: Validate Repository Structure
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Run structure validation tests
+        run: |
+          echo "🧪 Running structure validation tests..."
+          node tests/validate-structure.test.js
+      
+      - name: Run website integration tests
+        run: |
+          echo "🌐 Running website integration tests..."
+          node tests/validate-website.test.js
+      
+      - name: Test summary
+        if: always()
+        run: |
+          echo "✅ All validation tests completed!"
+          echo ""
+          echo "Validated:"
+          echo "  - games.json structure and required fields"
+          echo "  - Game directories and required files (index.html, README.md)"
+          echo "  - Website can load and serve all games"
+          echo "  - All paths and references are correct"

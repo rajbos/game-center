@@ -117,12 +117,41 @@ Add your game to the manifest with full metadata:
 Start a local web server to test:
 
 ```bash
+# Start a local web server (choose one method):
+
+# Option 1: Python 3
 python3 -m http.server 8000
-# or
-npx http-server
+
+# Option 2: Node.js http-server
+npx http-server -p 8000
+
+# Option 3: PHP (if installed)
+php -S localhost:8000
 ```
 
 Then navigate to `http://localhost:8000/` to see your game in the arcade selector.
+
+### Step 5: Run Tests
+
+Before submitting a PR, validate your changes:
+
+```bash
+# Run structure validation tests
+# Validates games.json format, game directories, and required files
+node tests/validate-structure.test.js
+
+# Run website integration tests
+# Starts a local server and validates all pages load correctly
+node tests/validate-website.test.js
+```
+
+These tests check:
+- ✅ `games.json` is valid JSON with required fields (`id`, `name`, `description`, `status`, `path`, `createdWith`, `model`, `prLinks`)
+- ✅ All referenced game directories exist
+- ✅ Each game has required files (`index.html`, `README.md`)
+- ✅ Game READMEs document AI model usage
+- ✅ Website can load and serve all games correctly
+- ✅ All paths and references are correct
 
 ## Documenting AI-Assisted Development
 
@@ -252,11 +281,76 @@ To use a custom domain, add a `CNAME` file to the repository root with your doma
 
 ## Testing
 
+### Automated Tests
+
+The repository includes automated tests that validate the structure and functionality:
+
+#### Structure Validation Tests (`tests/validate-structure.test.js`)
+
+Validates:
+- ✅ `games.json` exists and is valid JSON
+- ✅ `games.json` has required structure with "games" array
+- ✅ Each game entry has all required fields:
+  - `id` (string, non-empty)
+  - `name` (string, non-empty)
+  - `description` (string)
+  - `status` (string)
+  - `path` (string)
+  - `createdWith` (string - AI tool name)
+  - `model` (string - AI model name)
+  - `prLinks` (array of PR URLs)
+- ✅ Each game directory exists at the specified path
+- ✅ Each game has `index.html` (entry point)
+- ✅ Each game has `README.md` (documentation)
+- ✅ Game READMEs document AI usage
+- ✅ Main `index.html`, `README.md`, and `AGENTS.md` exist
+- ✅ `.github/workflows` directory exists
+
+**Run:** `node tests/validate-structure.test.js`
+
+#### Website Integration Tests (`tests/validate-website.test.js`)
+
+Validates:
+- ✅ Website starts and serves pages correctly
+- ✅ Main index page loads successfully
+- ✅ `games.json` is accessible via HTTP
+- ✅ All game `index.html` files are accessible
+- ✅ Game grid element is present on main page
+
+**Run:** `node tests/validate-website.test.js`
+
+### Running Tests Locally
+
+```bash
+# Run structure validation
+node tests/validate-structure.test.js
+
+# Run website integration tests
+node tests/validate-website.test.js
+
+# Run both tests sequentially
+node tests/validate-structure.test.js && node tests/validate-website.test.js
+```
+
+**Requirements:**
+- Node.js 18 or higher
+- No additional dependencies needed (uses Node.js built-in modules)
+
+### Continuous Integration
+
+Tests run automatically on:
+- **Pull Requests**: All PRs to `main` branch
+- **Push to main**: When code is merged
+- **Manual trigger**: Via GitHub Actions workflow_dispatch
+
+The validation workflow (`.github/workflows/validate.yml`) runs both test suites and reports results.
+
 ### Manual Testing Checklist
 
 Before committing changes:
 
-- [ ] Page loads without errors
+- [ ] Automated tests pass (`node tests/validate-structure.test.js && node tests/validate-website.test.js`)
+- [ ] Page loads without errors in browser
 - [ ] Games load from `games.json` correctly
 - [ ] Game cards render with correct information
 - [ ] Clicking a game card triggers expected behavior
