@@ -25,13 +25,38 @@ Visit the live site: [Game Center on GitHub Pages](https://rajbos.github.io/game
 git clone https://github.com/rajbos/game-center.git
 cd game-center
 
-# Start a local web server
-python3 -m http.server 8000
-# or
-npx http-server
+# Start a local web server (choose one method):
 
-# Open http://localhost:8000 in your browser
+# Option 1: Python 3
+python3 -m http.server 8000
+
+# Option 2: Node.js http-server (requires Node.js)
+npx http-server -p 8000
+
+# Option 3: PHP (if installed)
+php -S localhost:8000
+
+# Then open http://localhost:8000 in your browser
 ```
+
+### Testing the Site
+
+```bash
+# Run structure validation tests
+# Validates games.json, game directories, and required files
+node tests/validate-structure.test.js
+
+# Run website integration tests
+# Starts a local server and validates all pages load correctly
+node tests/validate-website.test.js
+
+# Or run both tests
+node tests/validate-structure.test.js && node tests/validate-website.test.js
+```
+
+**Requirements for testing:**
+- Node.js 18+ (for running tests)
+- All tests run automatically on pull requests via GitHub Actions
 
 ## 🎲 Adding Your Own Game
 
@@ -89,12 +114,17 @@ game-center/
 ├── games.json              # Game configuration manifest
 ├── games/                  # Game directory
 │   └── game-1/            # Example game
-│       ├── placeholder.txt
-│       └── README.md
+│       ├── index.html     # Game entry point
+│       ├── README.md      # Game documentation
+│       └── placeholder.txt
+├── tests/                  # Automated test suite
+│   ├── validate-structure.test.js   # Structure validation
+│   └── validate-website.test.js     # Integration tests
 ├── .github/
 │   └── workflows/
-│       └── pages.yml       # GitHub Pages deployment
-├── .agent.md              # Detailed instructions for agents/developers
+│       ├── pages.yml       # GitHub Pages deployment
+│       └── validate.yml    # PR validation workflow
+├── AGENTS.md              # Detailed instructions for agents/developers
 ├── README.md              # This file
 └── LICENSE
 ```
@@ -137,6 +167,42 @@ This project implements security best practices:
 - ARIA roles and labels for screen readers
 - Semantic HTML with proper button elements
 - Tested with screen readers and keyboard-only navigation
+
+## 🧪 Testing & Quality Assurance
+
+### Automated Tests
+
+The repository includes a comprehensive test suite:
+
+**Structure Validation** (`tests/validate-structure.test.js`)
+- Validates `games.json` format and required fields
+- Ensures all game directories and files exist
+- Checks AI documentation is present in READMEs
+- Verifies main site files are in place
+
+**Website Integration** (`tests/validate-website.test.js`)
+- Starts a local server and validates all pages load
+- Tests that games.json is accessible
+- Verifies all game index.html files are reachable
+- Ensures the game grid renders correctly
+
+### Running Tests
+
+```bash
+# Run all validation tests
+node tests/validate-structure.test.js && node tests/validate-website.test.js
+```
+
+**Requirements:** Node.js 18+
+
+### Continuous Integration
+
+Tests run automatically on:
+- ✅ Every pull request to `main`
+- ✅ When code is pushed to `main`
+- ✅ Can be triggered manually from GitHub Actions
+
+This ensures the arcade remains functional and all games are properly configured.
 
 ## 📝 Documentation
 
