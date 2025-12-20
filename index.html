@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Center - Arcade</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a0033 0%, #000000 100%);
+            color: #00ff00;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .arcade-header {
+            text-align: center;
+            margin: 40px 0;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .arcade-header h1 {
+            font-size: 4rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3rem;
+            text-shadow: 
+                0 0 10px #00ff00,
+                0 0 20px #00ff00,
+                0 0 30px #00ff00,
+                0 0 40px #00ff00;
+            margin-bottom: 10px;
+        }
+
+        .arcade-header p {
+            font-size: 1.2rem;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 
+                    0 0 10px #00ff00,
+                    0 0 20px #00ff00,
+                    0 0 30px #00ff00,
+                    0 0 40px #00ff00;
+            }
+            to {
+                text-shadow: 
+                    0 0 20px #00ff00,
+                    0 0 30px #00ff00,
+                    0 0 40px #00ff00,
+                    0 0 50px #00ff00,
+                    0 0 60px #00ff00;
+            }
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .game-card {
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1e);
+            border: 3px solid #00ff00;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent,
+                rgba(0, 255, 0, 0.1),
+                transparent
+            );
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) translateY(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) translateY(100%) rotate(45deg);
+            }
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: #ff00ff;
+            box-shadow: 
+                0 0 20px #ff00ff,
+                0 0 40px #ff00ff,
+                inset 0 0 20px rgba(255, 0, 255, 0.2);
+        }
+
+        .game-card h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .game-card p {
+            font-size: 1rem;
+            color: #ffff00;
+            position: relative;
+            z-index: 1;
+        }
+
+        .game-card .status {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: rgba(255, 0, 255, 0.2);
+            border: 2px solid #ff00ff;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #ff00ff;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+
+        .coin-slot {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1a1a2e;
+            border: 3px solid #ffff00;
+            border-radius: 10px;
+            padding: 15px 25px;
+            font-size: 1.2rem;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% {
+                opacity: 1;
+            }
+            25%, 75% {
+                opacity: 0.5;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .arcade-header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .game-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .coin-slot {
+                position: static;
+                margin: 20px auto;
+                text-align: center;
+            }
+        }
+
+        .footer {
+            margin-top: 60px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: #00ff00;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 1.5rem;
+            color: #00ff00;
+            padding: 40px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .error-message {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #ff0000;
+            font-size: 1.2rem;
+            padding: 40px;
+            border: 2px solid #ff0000;
+            border-radius: 10px;
+            background: rgba(255, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="arcade-header">
+        <h1>🕹️ Game Center 🕹️</h1>
+        <p>Built with GitHub Copilot</p>
+    </div>
+
+    <div class="game-grid" id="gameGrid">
+        <!-- Games will be loaded dynamically -->
+        <div class="loading">Loading games...</div>
+    </div>
+
+    <div class="coin-slot">
+        INSERT COIN 🪙
+    </div>
+
+    <div class="footer">
+        <p>Made with ❤️ and GitHub Copilot | <a href="https://github.com/rajbos/game-center" target="_blank">View on GitHub</a></p>
+    </div>
+
+    <script>
+        // Load games dynamically from games.json
+        async function loadGames() {
+            const gameGrid = document.getElementById('gameGrid');
+            
+            try {
+                const response = await fetch('/games.json');
+                if (!response.ok) {
+                    throw new Error(`Failed to load games: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                const games = data.games || [];
+                
+                // Clear loading message
+                gameGrid.innerHTML = '';
+                
+                if (games.length === 0) {
+                    gameGrid.innerHTML = '<div class="error-message">No games available yet. Check back soon!</div>';
+                    return;
+                }
+                
+                // Create game cards dynamically
+                games.forEach(game => {
+                    const gameCard = document.createElement('div');
+                    gameCard.className = 'game-card';
+                    gameCard.onclick = () => playGame(game.id, game.path);
+                    
+                    gameCard.innerHTML = `
+                        <h2>${game.name}</h2>
+                        <p>${game.description}</p>
+                        <span class="status">${game.status}</span>
+                    `;
+                    
+                    gameGrid.appendChild(gameCard);
+                });
+                
+                // Re-attach hover effects to newly created cards
+                attachHoverEffects();
+                
+            } catch (error) {
+                console.error('Error loading games:', error);
+                gameGrid.innerHTML = `
+                    <div class="error-message">
+                        ⚠️ Error loading games: ${error.message}<br>
+                        Please try refreshing the page.
+                    </div>
+                `;
+            }
+        }
+
+        function playGame(gameName, gamePath) {
+            // For now, just show an alert. Later this will navigate to the actual game
+            alert(`🎮 ${gameName} is coming soon! Stay tuned!`);
+            
+            // In the future, this could navigate to:
+            // window.location.href = `${gamePath}/index.html`;
+        }
+
+        // Add some interactivity - keyboard support
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const firstGame = document.querySelector('.game-card');
+                if (firstGame) {
+                    firstGame.click();
+                }
+            }
+        });
+
+        // Add retro sound effect on hover (optional enhancement)
+        function attachHoverEffects() {
+            document.querySelectorAll('.game-card').forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    // Future: add sound effects here
+                    card.style.transform = 'translateY(-10px) scale(1.05)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        }
+
+        // Load games when the page loads
+        window.addEventListener('DOMContentLoaded', loadGames);
+    </script>
+</body>
+</html>
