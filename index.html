@@ -311,12 +311,14 @@
                 
             } catch (error) {
                 console.error('Error loading games:', error);
-                gameGrid.innerHTML = `
-                    <div class="error-message">
-                        ⚠️ Error loading games: ${error.message}<br>
-                        Please try refreshing the page.
-                    </div>
-                `;
+                
+                // Create error message safely to prevent XSS
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = `⚠️ Error loading games: ${error.message}. Please try refreshing the page.`;
+                
+                gameGrid.innerHTML = '';
+                gameGrid.appendChild(errorDiv);
             }
         }
 
@@ -327,16 +329,6 @@
             // In the future, this could navigate to:
             // window.location.href = `${gamePath}/index.html`;
         }
-
-        // Add some interactivity - keyboard support
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') {
-                const firstGame = document.querySelector('.game-card');
-                if (firstGame) {
-                    firstGame.click();
-                }
-            }
-        });
 
         // Load games when the page loads
         window.addEventListener('DOMContentLoaded', loadGames);

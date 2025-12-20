@@ -5,7 +5,7 @@
       "name": "Game 1",
       "description": "Coming Soon...",
       "status": "In Development",
-      "path": "/games/game-1"
+      "path": "./games/game-1"
     }
   ]
 }
