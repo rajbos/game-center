@@ -379,7 +379,7 @@
             
             // Navigate to the game using URL API for safe path construction
             try {
-                const url = new URL(`${normalizedPath}/index.html`, window.location.origin);
+                const url = new URL(`${normalizedPath}/index.html`, window.location.href);
                 window.location.href = url.href;
             } catch (error) {
                 console.error('Failed to navigate to game:', error);
