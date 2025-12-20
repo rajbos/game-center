@@ -352,6 +352,7 @@
         const GRID_WIDTH = 19;
         const GRID_HEIGHT = 21;
         const CELL_SIZE = 30;
+        const MIN_SWIPE_DISTANCE = 30; // Minimum pixels for swipe recognition
         
         // Game state
         let score = 0;
@@ -772,7 +773,6 @@
         let touchStartY = 0;
         let touchEndX = 0;
         let touchEndY = 0;
-        const minSwipeDistance = 30;
 
         document.addEventListener('touchstart', (e) => {
             if (!gameRunning) return;
@@ -798,8 +798,8 @@
             const absDeltaX = Math.abs(deltaX);
             const absDeltaY = Math.abs(deltaY);
             
-            // Determine if swipe is significant enough
-            if (absDeltaX < minSwipeDistance && absDeltaY < minSwipeDistance) {
+            // Determine if swipe is significant enough (check if either axis exceeds threshold)
+            if (absDeltaX < MIN_SWIPE_DISTANCE && absDeltaY < MIN_SWIPE_DISTANCE) {
                 return;
             }
             
