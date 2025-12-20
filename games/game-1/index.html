@@ -430,8 +430,8 @@
                 return fullMaze;
             }
             
-            const startX = Math.floor((19 - GRID_WIDTH) / 2);
-            const startY = Math.floor((22 - GRID_HEIGHT) / 2);
+            const startX = Math.max(0, Math.floor((19 - GRID_WIDTH) / 2));
+            const startY = Math.max(0, Math.floor((fullMaze.length - GRID_HEIGHT) / 2));
             
             const cropped = [];
             for (let y = startY; y < Math.min(startY + GRID_HEIGHT, fullMaze.length); y++) {
