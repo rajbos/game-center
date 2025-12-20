@@ -434,9 +434,9 @@
             const startY = Math.floor((22 - GRID_HEIGHT) / 2);
             
             const cropped = [];
-            for (let y = startY; y < startY + GRID_HEIGHT; y++) {
+            for (let y = startY; y < Math.min(startY + GRID_HEIGHT, fullMaze.length); y++) {
                 const row = [];
-                for (let x = startX; x < startX + GRID_WIDTH; x++) {
+                for (let x = startX; x < Math.min(startX + GRID_WIDTH, fullMaze[y].length); x++) {
                     row.push(fullMaze[y][x]);
                 }
                 cropped.push(row);
