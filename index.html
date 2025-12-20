@@ -367,18 +367,19 @@
                 return;
             }
             
-            // Remove any potential directory traversal attempts
-            const sanitizedPath = gamePath.replace(/\.\./g, '');
+            // Normalize the path and ensure it starts with ./games/ for security
+            // This prevents directory traversal attacks
+            const normalizedPath = gamePath.replace(/\\/g, '/').replace(/\/+/g, '/');
             
-            // Ensure the path starts with ./games/ for security
-            if (!sanitizedPath.startsWith('./games/')) {
+            // Check for directory traversal patterns
+            if (normalizedPath.includes('..') || !normalizedPath.startsWith('./games/')) {
                 console.error('Game path must be within games directory');
                 return;
             }
             
             // Navigate to the game using URL API for safe path construction
             try {
-                const url = new URL(`${sanitizedPath}/index.html`, window.location.href);
+                const url = new URL(`${normalizedPath}/index.html`, window.location.origin);
                 window.location.href = url.href;
             } catch (error) {
                 console.error('Failed to navigate to game:', error);
