@@ -65,8 +65,8 @@
 
         @media (max-width: 768px) {
             #game-board {
-                grid-template-columns: repeat(19, 20px);
-                grid-template-rows: repeat(21, 20px);
+                grid-template-columns: repeat(15, 20px);
+                grid-template-rows: repeat(17, 20px);
             }
             
             .cell {
@@ -84,14 +84,14 @@
             }
             
             .player, .ghost {
-                font-size: 15px;
+                font-size: 12px;
             }
         }
 
         @media (max-width: 480px) {
             #game-board {
-                grid-template-columns: repeat(19, 15px);
-                grid-template-rows: repeat(21, 15px);
+                grid-template-columns: repeat(13, 15px);
+                grid-template-rows: repeat(15, 15px);
             }
             
             .cell {
@@ -109,7 +109,7 @@
             }
             
             .player, .ghost {
-                font-size: 11px;
+                font-size: 9px;
             }
             
             h1 {
@@ -348,11 +348,27 @@
     </div>
 
     <script>
-        // Game constants
-        const GRID_WIDTH = 19;
-        const GRID_HEIGHT = 21;
+        // Game constants - adjust based on viewport
+        let GRID_WIDTH = 19;
+        let GRID_HEIGHT = 21;
         const CELL_SIZE = 30;
         const MIN_SWIPE_DISTANCE = 30; // Minimum pixels for swipe recognition
+        
+        // Adjust grid size based on viewport
+        function updateGridSize() {
+            if (window.innerWidth <= 480) {
+                GRID_WIDTH = 13;
+                GRID_HEIGHT = 15;
+            } else if (window.innerWidth <= 768) {
+                GRID_WIDTH = 15;
+                GRID_HEIGHT = 17;
+            } else {
+                GRID_WIDTH = 19;
+                GRID_HEIGHT = 21;
+            }
+        }
+        
+        updateGridSize();
         
         // Game state
         let score = 0;
@@ -362,21 +378,28 @@
         let pelletCount = 0;
         let eatenPellets = 0;
         
-        // Player state
-        let playerPos = { x: 9, y: 15 };
+        // Player state - positions will be adjusted for cropped maze
+        let playerPos = { x: Math.floor(GRID_WIDTH / 2), y: Math.floor(GRID_HEIGHT * 0.7) };
         let playerDirection = { x: 0, y: 0 };
         let nextDirection = { x: 0, y: 0 };
         
-        // Ghost states
-        let ghosts = [
-            { x: 8, y: 9, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
-            { x: 9, y: 9, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
-            { x: 10, y: 9, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
-            { x: 9, y: 10, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
-        ];
+        // Ghost states - positions will be adjusted for cropped maze
+        function getInitialGhostPositions() {
+            const centerX = Math.floor(GRID_WIDTH / 2);
+            const centerY = Math.floor(GRID_HEIGHT * 0.4);
+            
+            return [
+                { x: centerX - 1, y: centerY, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
+                { x: centerX, y: centerY, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
+                { x: centerX + 1, y: centerY, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
+                { x: centerX, y: centerY + 1, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
+            ];
+        }
+        
+        let ghosts = getInitialGhostPositions();
         
         // Maze layout (1 = wall, 0 = path, 2 = pellet, 3 = power pellet)
-        const maze = [
+        const fullMaze = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
             [1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,1],
             [1,3,1,1,2,1,1,1,2,1,2,1,1,1,2,1,1,3,1],
@@ -401,7 +424,28 @@
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
         
+        // Get cropped maze based on grid size
+        function getCroppedMaze() {
+            if (GRID_WIDTH === 19 && GRID_HEIGHT === 21) {
+                return fullMaze;
+            }
+            
+            const startX = Math.floor((19 - GRID_WIDTH) / 2);
+            const startY = Math.floor((22 - GRID_HEIGHT) / 2);
+            
+            const cropped = [];
+            for (let y = startY; y < startY + GRID_HEIGHT; y++) {
+                const row = [];
+                for (let x = startX; x < startX + GRID_WIDTH; x++) {
+                    row.push(fullMaze[y][x]);
+                }
+                cropped.push(row);
+            }
+            return cropped;
+        }
+        
         // Create a copy for game state
+        let maze = getCroppedMaze();
         let gameBoard = JSON.parse(JSON.stringify(maze));
         
         // Sound effects using Web Audio API
@@ -662,16 +706,11 @@
                 gameOver();
             } else {
                 // Reset positions
-                playerPos = { x: 9, y: 15 };
+                playerPos = { x: Math.floor(GRID_WIDTH / 2), y: Math.floor(GRID_HEIGHT * 0.7) };
                 playerDirection = { x: 0, y: 0 };
                 nextDirection = { x: 0, y: 0 };
                 
-                ghosts = [
-                    { x: 8, y: 9, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
-                    { x: 9, y: 9, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
-                    { x: 10, y: 9, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
-                    { x: 9, y: 10, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
-                ];
+                ghosts = getInitialGhostPositions();
                 
                 updateDisplay();
             }
@@ -690,20 +729,16 @@
             
             setTimeout(() => {
                 // Reset board
+                maze = getCroppedMaze();
                 gameBoard = JSON.parse(JSON.stringify(maze));
                 initBoard();
                 
                 // Reset positions
-                playerPos = { x: 9, y: 15 };
+                playerPos = { x: Math.floor(GRID_WIDTH / 2), y: Math.floor(GRID_HEIGHT * 0.7) };
                 playerDirection = { x: 0, y: 0 };
                 nextDirection = { x: 0, y: 0 };
                 
-                ghosts = [
-                    { x: 8, y: 9, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
-                    { x: 9, y: 9, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
-                    { x: 10, y: 9, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
-                    { x: 9, y: 10, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
-                ];
+                ghosts = getInitialGhostPositions();
                 
                 gameRunning = true;
                 updateDisplay();
