@@ -148,7 +148,15 @@ async function runTests() {
     try {
       const response = await testRequest('/games.json');
       if (response.statusCode === 200) {
-        const gamesData = JSON.parse(response.body);
+        let gamesData;
+        try {
+          gamesData = JSON.parse(response.body);
+        } catch (parseError) {
+          log(`  ✗ games.json contains invalid JSON: ${parseError.message}`, colors.red);
+          testsFailed++;
+          throw parseError;
+        }
+        
         if (Array.isArray(gamesData.games)) {
           log('  ✓ games.json loaded and parsed successfully', colors.green);
           testsPassed++;
@@ -157,7 +165,13 @@ async function runTests() {
           log('\nTest 3: All game index.html files are accessible', colors.cyan);
           for (const game of gamesData.games) {
             try {
-              const gamePath = game.path.replace('./', '/');
+              // Normalize path to URL format
+              let gamePath = game.path;
+              if (gamePath.startsWith('./')) {
+                gamePath = gamePath.substring(1);
+              } else if (!gamePath.startsWith('/')) {
+                gamePath = '/' + gamePath;
+              }
               const gameIndexPath = `${gamePath}/index.html`;
               const gameResponse = await testRequest(gameIndexPath);
               
