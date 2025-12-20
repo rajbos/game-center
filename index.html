@@ -291,9 +291,6 @@
                     gameGrid.appendChild(gameCard);
                 });
                 
-                // Re-attach hover effects to newly created cards
-                attachHoverEffects();
-                
             } catch (error) {
                 console.error('Error loading games:', error);
                 gameGrid.innerHTML = `
@@ -305,9 +302,9 @@
             }
         }
 
-        function playGame(gameName, gamePath) {
+        function playGame(gameId, gamePath) {
             // For now, just show an alert. Later this will navigate to the actual game
-            alert(`🎮 ${gameName} is coming soon! Stay tuned!`);
+            alert(`🎮 ${gameId} is coming soon! Stay tuned!`);
             
             // In the future, this could navigate to:
             // window.location.href = `${gamePath}/index.html`;
@@ -322,19 +319,6 @@
                 }
             }
         });
-
-        // Add retro sound effect on hover (optional enhancement)
-        function attachHoverEffects() {
-            document.querySelectorAll('.game-card').forEach(card => {
-                card.addEventListener('mouseenter', () => {
-                    // Future: add sound effects here
-                    card.style.transform = 'translateY(-10px) scale(1.05)';
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'translateY(0) scale(1)';
-                });
-            });
-        }
 
         // Load games when the page loads
         window.addEventListener('DOMContentLoaded', loadGames);
