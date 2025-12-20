@@ -199,6 +199,25 @@ All games and UI elements must:
 - Provide sufficient color contrast
 - Be tested with screen readers
 
+## 📱 Mobile Support Requirements
+
+All new games must be playable on mobile devices:
+
+- **Responsive Design**: Games must adapt to different screen sizes (desktop, tablet, phone)
+- **Touch Controls**: Implement one or more of the following:
+  - Swipe gestures for directional input
+  - On-screen buttons for game controls
+  - Tap/touch interactions appropriate for the game type
+- **Mobile Testing**: Test on mobile viewports (at minimum 375px width for phones)
+- **Control Instructions**: Update game instructions to mention both desktop and mobile controls
+- **Performance**: Ensure smooth gameplay on mobile devices
+
+See `games/game-1` (Retro Pac-Man) for a reference implementation with:
+- Responsive CSS Grid that scales to mobile screens
+- On-screen directional buttons
+- Swipe gesture detection
+- Clear instructions for both desktop and mobile users
+
 ## 🎨 Style Guidelines
 
 ### Arcade Theme

@@ -59,6 +59,15 @@ games/your-game-name/
 1. **AI Model Information**: Which AI model was used to build the game
 2. **Development History**: Links to all PRs that contributed to this game
 3. **Game Instructions**: How to play and what the game does
+4. **Mobile Support**: Document mobile controls if the game supports touch/mobile devices
+
+**Mobile Support Requirements**: All games should be playable on mobile devices with:
+- Responsive design that adapts to phone/tablet screens
+- Touch controls (swipe gestures, on-screen buttons, or tap interactions)
+- Instructions that cover both desktop and mobile controls
+- Testing on mobile viewports (minimum 375px width)
+
+See `games/game-1/index.html` for reference implementation.
 
 Example README structure:
 

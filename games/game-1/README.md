@@ -16,7 +16,13 @@ This section tracks all PRs that contributed to building this game:
 ## How to Play
 
 🎮 **Controls:**
+
+**Desktop:**
 - Use **Arrow Keys** (↑ ↓ ← →) to move your Pac-Man character (😮)
+
+**Mobile:**
+- **Swipe** in any direction on the game board to move
+- **Tap** the directional buttons (↑ ↓ ← →) below the game board
 - Navigate through the maze and eat all the pellets (•) and power pellets (●)
 
 🎯 **Objective:**
@@ -41,6 +47,7 @@ This section tracks all PRs that contributed to building this game:
 
 ✨ **Game Mechanics:**
 - Smooth keyboard-based movement with direction queuing
+- Touch and swipe controls for mobile devices
 - Wall collision detection
 - Ghost AI with pathfinding towards the player
 - Three-life system with respawn
@@ -54,6 +61,13 @@ This section tracks all PRs that contributed to building this game:
 - Blinking power pellets
 - Blue maze walls with cyan/blue color scheme
 - Glowing text effects
+- Responsive design that adapts to mobile screens
+
+📱 **Mobile Support:**
+- Responsive grid layout that scales for different screen sizes
+- Touch control buttons for directional movement
+- Swipe gesture recognition for intuitive mobile gameplay
+- Optimized cell sizes for tablets and phones
 
 🔊 **Sound Effects:**
 - Movement sounds (retro beeps)
@@ -69,5 +83,8 @@ This section tracks all PRs that contributed to building this game:
 - CSS Grid layout for the game board
 - RequestAnimationFrame for smooth game loop
 - Web Audio API for retro sound effects
-- Responsive design with retro styling
-- 19x21 grid maze layout
+- Responsive design with mobile-first approach
+- Touch event handling for swipe gestures
+- On-screen directional buttons for mobile devices
+- Media queries for optimal display on tablets (768px) and phones (480px)
+- 19x21 grid maze layout that scales appropriately
