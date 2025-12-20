@@ -378,8 +378,10 @@
             }
             
             // Navigate to the game using URL API for safe path construction
+            // Convert relative path to absolute by removing the leading ./
             try {
-                const url = new URL(`${normalizedPath}/index.html`, window.location.href);
+                const absolutePath = normalizedPath.replace(/^\.\//, '/');
+                const url = new URL(absolutePath + '/index.html', window.location.origin);
                 window.location.href = url.href;
             } catch (error) {
                 console.error('Failed to navigate to game:', error);
