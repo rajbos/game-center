@@ -260,7 +260,7 @@
             const gameGrid = document.getElementById('gameGrid');
             
             try {
-                const response = await fetch('/games.json');
+                const response = await fetch('./games.json');
                 if (!response.ok) {
                     throw new Error(`Failed to load games: ${response.statusText}`);
                 }
@@ -280,13 +280,31 @@
                 games.forEach(game => {
                     const gameCard = document.createElement('div');
                     gameCard.className = 'game-card';
+                    gameCard.setAttribute('tabindex', '0');
+                    gameCard.setAttribute('role', 'button');
+                    gameCard.setAttribute('aria-label', `Play ${game.name}`);
                     gameCard.onclick = () => playGame(game.id, game.path);
+                    gameCard.onkeydown = (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            playGame(game.id, game.path);
+                        }
+                    };
                     
-                    gameCard.innerHTML = `
-                        <h2>${game.name}</h2>
-                        <p>${game.description}</p>
-                        <span class="status">${game.status}</span>
-                    `;
+                    // Create child elements safely to prevent XSS
+                    const heading = document.createElement('h2');
+                    heading.textContent = game.name;
+                    
+                    const description = document.createElement('p');
+                    description.textContent = game.description;
+                    
+                    const status = document.createElement('span');
+                    status.className = 'status';
+                    status.textContent = game.status;
+                    
+                    gameCard.appendChild(heading);
+                    gameCard.appendChild(description);
+                    gameCard.appendChild(status);
                     
                     gameGrid.appendChild(gameCard);
                 });
