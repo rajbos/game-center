@@ -39,11 +39,12 @@ function createServer() {
       pathname = '/index.html';
     }
     
-    // Construct file path
-    const filePath = path.join(repoRoot, pathname);
+    // Construct and normalize file path
+    const filePath = path.resolve(path.join(repoRoot, pathname));
     
-    // Prevent directory traversal
-    if (!filePath.startsWith(repoRoot)) {
+    // Prevent directory traversal - ensure resolved path is within repo root
+    const relativePath = path.relative(repoRoot, filePath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
       res.writeHead(403);
       res.end('Forbidden');
       return;
@@ -124,8 +125,18 @@ async function runTests() {
       });
     });
     
-    // Give server a moment to fully start
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Verify server is ready by attempting a simple request
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        await testRequest('/');
+        break; // Server is ready
+      } catch (error) {
+        retries--;
+        if (retries === 0) throw new Error('Server failed to start properly');
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
     
     // Test 1: Index page loads
     log('\nTest 1: Index page loads', colors.cyan);
@@ -165,11 +176,8 @@ async function runTests() {
           log('\nTest 3: All game index.html files are accessible', colors.cyan);
           for (const game of gamesData.games) {
             try {
-              // Normalize path to URL format
-              let gamePath = game.path;
-              if (gamePath.startsWith('./')) {
-                gamePath = gamePath.substring(2); // Remove './' prefix
-              }
+              // Normalize path to URL format - remove leading ./ or ../ if present
+              let gamePath = game.path.replace(/^\.\//, '').replace(/^\.\.\//, '');
               if (!gamePath.startsWith('/')) {
                 gamePath = '/' + gamePath; // Ensure leading slash
               }

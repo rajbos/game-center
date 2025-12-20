@@ -148,10 +148,11 @@ if (gamesData && Array.isArray(gamesData.games)) {
         const readmeContent = fs.readFileSync(readmePath, 'utf8').toLowerCase();
         
         test(`${gamePrefix}: README.md mentions AI/model`, () => {
-          return readmeContent.includes('built with') || 
+          const hasGeneralAI = readmeContent.includes('built with') || 
                  readmeContent.includes('ai') || 
-                 readmeContent.includes('copilot') ||
-                 readmeContent.includes(game.model.toLowerCase());
+                 readmeContent.includes('copilot');
+          const hasModel = game.model && readmeContent.includes(game.model.toLowerCase());
+          return hasGeneralAI || hasModel;
         });
       }
     }
