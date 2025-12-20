@@ -35,21 +35,29 @@ npx http-server
 
 ## 🎲 Adding Your Own Game
 
+### Quick Start
+
 1. **Create a game folder** in `/games/`:
    ```bash
    mkdir -p games/my-awesome-game
    ```
 
-2. **Add your game files** with an `index.html` as the entry point:
+2. **Add your game files** with an `index.html` as the entry point and a `README.md`:
    ```
    games/my-awesome-game/
-   ├── index.html
+   ├── index.html       (required: game entry point)
+   ├── README.md        (required: documentation)
    ├── styles/
    ├── scripts/
    └── assets/
    ```
 
-3. **Update `games.json`** to register your game:
+3. **Document your AI development process** in the game's README:
+   - Specify the AI model used (e.g., "Claude 3.5 Sonnet")
+   - Include links to PRs that built the game
+   - Document interesting AI-assisted approaches
+
+4. **Update `games.json`** to register your game:
    ```json
    {
      "games": [
@@ -58,13 +66,20 @@ npx http-server
          "name": "My Awesome Game",
          "description": "A super fun game!",
          "status": "Ready to Play",
-         "path": "./games/my-awesome-game"
+         "path": "./games/my-awesome-game",
+         "createdWith": "GitHub Copilot Coding Agent",
+         "model": "Claude 3.5 Sonnet",
+         "prLinks": [
+           "https://github.com/rajbos/game-center/pull/123"
+         ]
        }
      ]
    }
    ```
 
-4. **Refresh the page** - Your game appears automatically!
+5. **Test locally** and submit a PR!
+
+For detailed instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 📁 Repository Structure
 
@@ -125,7 +140,22 @@ This project implements security best practices:
 
 ## 📝 Documentation
 
-For detailed instructions on modifying the arcade, adding games, deployment, and troubleshooting, see [`.agent.md`](.agent.md).
+### AI-Assisted Development
+
+All games in this arcade are built with GitHub Copilot, showcasing AI-assisted development. We document:
+
+- **AI Model Used**: Each game's README specifies which AI model built it (e.g., "Claude 3.5 Sonnet", "GPT-4")
+- **Development History**: PRs that contributed to each game are tracked in the game's README and in `games.json`
+- **Best Practices**: How AI assistance was leveraged effectively
+
+This transparency helps developers understand how AI tools can be used in game development and provides a learning resource for the community.
+
+### Documentation Files
+
+For detailed instructions on modifying the arcade, adding games, deployment, and troubleshooting, see:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for adding games and contributing
+- [AGENTS.md](AGENTS.md) - Detailed instructions for agents/developers working on the repository
 
 ## 🤝 Contributing
 

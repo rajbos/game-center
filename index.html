@@ -150,6 +150,23 @@
             letter-spacing: 0.1rem;
         }
 
+        .game-card .ai-badge {
+            display: block;
+            margin-top: 12px;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            color: #00ffff;
+            text-align: center;
+            opacity: 0.8;
+            border-top: 1px solid rgba(0, 255, 255, 0.3);
+            padding-top: 12px;
+        }
+
+        .game-card .ai-badge .model {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
         .coin-slot {
             position: fixed;
             bottom: 20px;
@@ -308,6 +325,24 @@
                     gameCard.appendChild(heading);
                     gameCard.appendChild(description);
                     gameCard.appendChild(status);
+                    
+                    // Add AI metadata badge if available
+                    if (game.createdWith && game.model) {
+                        const aiBadge = document.createElement('div');
+                        aiBadge.className = 'ai-badge';
+                        
+                        const badgeText = document.createElement('span');
+                        badgeText.textContent = 'Built with ';
+                        
+                        const modelSpan = document.createElement('span');
+                        modelSpan.className = 'model';
+                        modelSpan.textContent = game.model;
+                        
+                        aiBadge.appendChild(badgeText);
+                        aiBadge.appendChild(modelSpan);
+                        
+                        gameCard.appendChild(aiBadge);
+                    }
                     
                     gameGrid.appendChild(gameCard);
                 });

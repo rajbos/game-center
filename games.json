@@ -5,7 +5,10 @@
       "name": "Game 1",
       "description": "Coming Soon...",
       "status": "In Development",
-      "path": "./games/game-1"
+      "path": "./games/game-1",
+      "createdWith": "GitHub Copilot Coding Agent",
+      "model": "Claude 3.5 Sonnet",
+      "prLinks": []
     }
   ]
 }
