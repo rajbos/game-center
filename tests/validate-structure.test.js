@@ -124,6 +124,15 @@ if (gamesData && Array.isArray(gamesData.games)) {
       return Array.isArray(game.prLinks);
     });
     
+    // PR Count field (optional but recommended)
+    test(`${gamePrefix}: has "prCount" field (number)`, () => {
+      // prCount is optional, but if present should be a number
+      if (game.prCount !== undefined) {
+        return typeof game.prCount === 'number' && game.prCount >= 0;
+      }
+      return true; // Pass if field doesn't exist (it's optional)
+    });
+    
     // Test game directory and files exist
     if (game.path) {
       // Normalize and resolve path - path.resolve handles ./, ../, and absolute paths
@@ -142,6 +151,33 @@ if (gamesData && Array.isArray(gamesData.games)) {
       test(`${gamePrefix}: has README.md`, () => {
         return fs.existsSync(readmePath) && fs.statSync(readmePath).isFile();
       });
+      
+      // Test for game-info.yaml (optional but recommended)
+      const gameInfoPath = path.join(gamePath, 'game-info.yaml');
+      if (fs.existsSync(gameInfoPath)) {
+        test(`${gamePrefix}: has game-info.yaml`, () => {
+          return fs.statSync(gameInfoPath).isFile();
+        });
+        
+        // Validate game-info.yaml structure
+        try {
+          const gameInfoContent = fs.readFileSync(gameInfoPath, 'utf8');
+          test(`${gamePrefix}: game-info.yaml is readable`, () => {
+            return gameInfoContent.length > 0;
+          });
+          
+          // Basic validation that it contains expected sections
+          test(`${gamePrefix}: game-info.yaml has pull_requests section`, () => {
+            return gameInfoContent.includes('pull_requests:');
+          });
+          
+          test(`${gamePrefix}: game-info.yaml has stats section`, () => {
+            return gameInfoContent.includes('stats:');
+          });
+        } catch (error) {
+          fail(`${gamePrefix}: Error reading game-info.yaml - ${error.message}`);
+        }
+      }
       
       // Validate README contains AI documentation
       if (fs.existsSync(readmePath)) {
