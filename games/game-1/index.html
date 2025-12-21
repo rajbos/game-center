@@ -19,9 +19,10 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
-            overflow: hidden;
+            justify-content: flex-start;
+            padding: 10px;
+            overflow-x: hidden;
+            overflow-y: auto;
         }
 
         h1 {
@@ -50,54 +51,31 @@
                 0 0 20px #00ffff,
                 0 0 40px #00ffff,
                 inset 0 0 20px rgba(0, 255, 255, 0.1);
-            margin: 20px 0;
+            margin: 10px 0;
+            max-width: 100%;
         }
 
         #game-board {
             display: grid;
             grid-template-columns: repeat(19, 30px);
-            grid-template-rows: repeat(21, 30px);
+            grid-template-rows: repeat(22, 30px);
             gap: 0;
             background: #000066;
             border: 2px solid #0066ff;
             margin-bottom: 15px;
+            max-width: 100%;
         }
 
         @media (max-width: 768px) {
             #game-board {
-                grid-template-columns: repeat(19, 20px);
-                grid-template-rows: repeat(21, 20px);
+                grid-template-columns: repeat(19, 16px);
+                grid-template-rows: repeat(22, 16px);
             }
             
             .cell {
-                width: 20px;
-                height: 20px;
-                font-size: 14px;
-            }
-            
-            .pellet::after {
-                font-size: 8px;
-            }
-            
-            .power-pellet::after {
+                width: 16px;
+                height: 16px;
                 font-size: 12px;
-            }
-            
-            .player, .ghost {
-                font-size: 15px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            #game-board {
-                grid-template-columns: repeat(19, 15px);
-                grid-template-rows: repeat(21, 15px);
-            }
-            
-            .cell {
-                width: 15px;
-                height: 15px;
-                font-size: 10px;
             }
             
             .pellet::after {
@@ -105,20 +83,62 @@
             }
             
             .power-pellet::after {
-                font-size: 9px;
+                font-size: 10px;
             }
             
             .player, .ghost {
-                font-size: 11px;
+                font-size: 10px;
+            }
+            
+            #game-container {
+                padding: 10px;
+                margin: 5px 0;
             }
             
             h1 {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
+                margin-bottom: 5px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #game-board {
+                grid-template-columns: repeat(19, 12px);
+                grid-template-rows: repeat(22, 12px);
+            }
+            
+            .cell {
+                width: 12px;
+                height: 12px;
+                font-size: 9px;
+            }
+            
+            .pellet::after {
+                font-size: 5px;
+            }
+            
+            .power-pellet::after {
+                font-size: 7px;
+            }
+            
+            .player, .ghost {
+                font-size: 8px;
+            }
+            
+            #game-container {
+                padding: 8px;
+                margin: 5px 0;
+            }
+            
+            h1 {
+                font-size: 1.3rem;
+                margin-bottom: 5px;
             }
             
             #game-info {
-                font-size: 0.9rem;
+                font-size: 0.8rem;
                 flex-wrap: wrap;
+                gap: 10px;
             }
         }
 
@@ -350,7 +370,7 @@
     <script>
         // Game constants
         const GRID_WIDTH = 19;
-        const GRID_HEIGHT = 21;
+        const GRID_HEIGHT = 22;
         const CELL_SIZE = 30;
         const MIN_SWIPE_DISTANCE = 30; // Minimum pixels for swipe recognition
         
