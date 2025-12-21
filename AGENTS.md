@@ -161,6 +161,59 @@ stats:
 3. Updates the prCount in games.json
 4. Commits the changes back to main
 
+### Step 3b: Add PR History Panel to Your Game (Optional)
+
+To display PR history in your game, add the shared PR history panel component:
+
+```html
+<!-- At the end of your game's HTML, before </body> -->
+<script>
+    // Dynamically load the PR history panel component
+    (async function() {
+        try {
+            const response = await fetch('../../shared/pr-history-panel.html');
+            if (response.ok) {
+                const html = await response.text();
+                
+                // Create a temporary div to parse the HTML
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                
+                // Extract and inject styles
+                const styles = temp.querySelectorAll('style');
+                styles.forEach(style => {
+                    document.head.appendChild(style.cloneNode(true));
+                });
+                
+                // Extract and inject HTML elements (button and panel)
+                const elements = temp.querySelectorAll('button, #pr-history-panel');
+                elements.forEach(el => {
+                    document.body.appendChild(el.cloneNode(true));
+                });
+                
+                // Extract and execute scripts
+                const scripts = temp.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    newScript.textContent = script.textContent;
+                    document.body.appendChild(newScript);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load PR history panel:', error);
+        }
+    })();
+</script>
+```
+
+**Benefits:**
+- Shared component - no need to duplicate code in each game
+- Automatically loads PR data from `game-info.yaml`
+- Interactive side panel with toggle button
+- Displays full PR history with links
+
+**Note**: The component must be at the arcade level (`/shared/pr-history-panel.html`) so all games can access it using the relative path `../../shared/pr-history-panel.html`.
+
 ### Step 4: Test Locally
 
 Start a local web server to test:
