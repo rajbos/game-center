@@ -261,13 +261,13 @@
                         currentPR = { number: isNaN(prNum) ? 0 : prNum };
                     } else if (currentPR) {
                         if (trimmed.startsWith('title:')) {
-                            currentPR.title = trimmed.substring(7).replace(/^"(.*)"$/, '$1');
+                            currentPR.title = trimmed.substring(trimmed.indexOf(':') + 1).trim().replace(/^"(.*)"$/, '$1');
                         } else if (trimmed.startsWith('url:')) {
-                            currentPR.url = trimmed.substring(5).replace(/^"(.*)"$/, '$1');
+                            currentPR.url = trimmed.substring(trimmed.indexOf(':') + 1).trim().replace(/^"(.*)"$/, '$1');
                         } else if (trimmed.startsWith('merged_at:')) {
-                            currentPR.merged_at = trimmed.substring(11).replace(/^"(.*)"$/, '$1');
+                            currentPR.merged_at = trimmed.substring(trimmed.indexOf(':') + 1).trim().replace(/^"(.*)"$/, '$1');
                         } else if (trimmed.startsWith('author:')) {
-                            currentPR.author = trimmed.substring(8).replace(/^"(.*)"$/, '$1');
+                            currentPR.author = trimmed.substring(trimmed.indexOf(':') + 1).trim().replace(/^"(.*)"$/, '$1');
                         }
                     }
                 }
