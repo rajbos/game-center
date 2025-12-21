@@ -1,43 +1,39 @@
-# Game Information and PR Tracking
-# This file tracks all PRs that have contributed to this game
-
 game:
   id: game-1
-  name: "Retro Pac-Man"
-  description: "Classic Pac-Man with emoji sprites! Eat pellets, avoid ghosts, and rack up points in this retro arcade game."
-
-# Pull Requests that modified this game (newest first)
+  name: Retro Pac-Man
+  description: Classic Pac-Man with emoji sprites! Eat pellets, avoid ghosts, and rack up points in this retro arcade game.
 pull_requests:
+  - number: 11
+    title: Add PR tracking system with shared component architecture
+    url: https://github.com/rajbos/game-center/pull/11
+    merged_at: '2025-12-21T20:40:11Z'
+    author: Copilot
+    description: Implements automated tracking of PRs contributing to each game, with visual display in arcade and game pages using a shared, reusable component.
   - number: 10
-    title: "Add power pellet ghost-eating mechanic with animations and sound"
-    url: "https://github.com/rajbos/game-center/pull/10"
-    merged_at: "2025-12-21T17:23:43Z"
-    author: "Copilot"
-    description: "Implements classic Pac-Man power-up behavior: eating power pellets enables ghost consumption"
-    
+    title: Add power pellet ghost-eating mechanic with animations and sound
+    url: https://github.com/rajbos/game-center/pull/10
+    merged_at: '2025-12-21T17:23:43Z'
+    author: Copilot
+    description: 'Implements classic Pac-Man power-up behavior: eating power pellets enables ghost consumption'
   - number: 9
-    title: "Fix mobile view: prevent overflow and ensure proper icon sizing"
-    url: "https://github.com/rajbos/game-center/pull/9"
-    merged_at: "2025-12-21T10:47:18Z"
-    author: "Copilot"
-    description: "Mobile view fixes for proper scaling and viewport handling"
-    
+    title: 'Fix mobile view: prevent overflow and ensure proper icon sizing'
+    url: https://github.com/rajbos/game-center/pull/9
+    merged_at: '2025-12-21T10:47:18Z'
+    author: Copilot
+    description: Mobile view fixes for proper scaling and viewport handling
   - number: 8
-    title: "Add mobile support to Retro Pac-Man with touch controls and responsive design"
-    url: "https://github.com/rajbos/game-center/pull/8"
-    merged_at: "2025-12-20T22:02:00Z"
-    author: "Copilot"
-    description: "Added touch controls, swipe gestures, and responsive design for mobile devices"
-    
+    title: Add mobile support to Retro Pac-Man with touch controls and responsive design
+    url: https://github.com/rajbos/game-center/pull/8
+    merged_at: '2025-12-20T22:02:00Z'
+    author: Copilot
+    description: Added touch controls, swipe gestures, and responsive design for mobile devices
   - number: 4
-    title: "Add retro Pac-Man game with emoji sprites and complete mechanics"
-    url: "https://github.com/rajbos/game-center/pull/4"
-    merged_at: "2025-12-20T15:42:07Z"
-    author: "Copilot"
-    description: "Initial implementation of Pac-Man game with full mechanics, ghost AI, and sound effects"
-
-# Statistics
+    title: Add retro Pac-Man game with emoji sprites and complete mechanics
+    url: https://github.com/rajbos/game-center/pull/4
+    merged_at: '2025-12-20T15:42:07Z'
+    author: Copilot
+    description: Initial implementation of Pac-Man game with full mechanics, ghost AI, and sound effects
 stats:
-  total_prs: 4
-  first_pr_date: "2025-12-20T15:42:07Z"
-  last_pr_date: "2025-12-21T17:23:43Z"
+  total_prs: 5
+  first_pr_date: '2025-12-20T15:42:07Z'
+  last_pr_date: '2025-12-21T20:40:11Z'
