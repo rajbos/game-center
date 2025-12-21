@@ -8,7 +8,8 @@
       "path": "./games/game-1",
       "createdWith": "GitHub Copilot Coding Agent",
       "model": "Claude 3.5 Sonnet",
-      "prLinks": []
+      "prLinks": [],
+      "prCount": 4
     }
   ]
 }

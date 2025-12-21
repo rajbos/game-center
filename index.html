@@ -167,6 +167,24 @@
             font-weight: bold;
         }
 
+        .game-card .pr-count {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+        }
+
+        .game-card .pr-count .count {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
         .coin-slot {
             position: fixed;
             bottom: 20px;
@@ -342,6 +360,24 @@
                         aiBadge.appendChild(modelSpan);
                         
                         gameCard.appendChild(aiBadge);
+                    }
+                    
+                    // Add PR count badge if available
+                    if (game.prCount && game.prCount > 0) {
+                        const prCountBadge = document.createElement('div');
+                        prCountBadge.className = 'pr-count';
+                        
+                        const countSpan = document.createElement('span');
+                        countSpan.className = 'count';
+                        countSpan.textContent = game.prCount;
+                        
+                        const labelSpan = document.createElement('span');
+                        labelSpan.textContent = game.prCount === 1 ? ' PR' : ' PRs';
+                        
+                        prCountBadge.appendChild(countSpan);
+                        prCountBadge.appendChild(labelSpan);
+                        
+                        gameCard.appendChild(prCountBadge);
                     }
                     
                     gameGrid.appendChild(gameCard);

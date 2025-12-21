@@ -1,0 +1,57 @@
+name: Update Game PR Tracking
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  update-pr-tracking:
+    # Only run when PR is merged
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install js-yaml
+        run: npm install js-yaml
+      
+      - name: Detect affected games and update tracking
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_MERGED_AT: ${{ github.event.pull_request.merged_at }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          node .github/scripts/update-game-pr-tracking.js
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Check if there are changes
+          if [[ -n $(git status -s) ]]; then
+            git add games/*/game-info.yaml games.json
+            git commit -m "Update game PR tracking for PR #${{ github.event.pull_request.number }}"
+            git push
+            echo "✅ Updated game PR tracking"
+          else
+            echo "ℹ️ No game files were modified in this PR"
+          fi
