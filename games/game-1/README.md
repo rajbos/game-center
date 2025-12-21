@@ -27,10 +27,16 @@ This section tracks all PRs that contributed to building this game:
 
 🎯 **Objective:**
 - Eat all pellets to complete the level
-- Avoid the ghosts (👻 👾 🤖 💀) or you'll lose a life
+- **Power pellets (●) let you eat ghosts for a limited time!**
+  - When you eat a power pellet, ghosts turn scared (😱) and run away
+  - You can eat scared ghosts to score bonus points
+  - The effect lasts for 8 seconds
+  - Ghosts blink in the last 2 seconds as a warning
+  - After being eaten, ghosts respawn at the center
 - Score points:
   - Regular pellets: 10 points
   - Power pellets: 50 points
+  - Eating ghosts: 200, 400, 800, 1600 points (combo multiplier)
   - Level completion: 200 bonus points
 
 ❤️ **Lives System:**
@@ -42,6 +48,10 @@ This section tracks all PRs that contributed to building this game:
 - Four different ghosts patrol the maze
 - They have intelligent AI that tracks your position (70% of the time)
 - Each ghost has a unique emoji and color
+- **Power Mode:** When you eat a power pellet, ghosts become scared and flee from you
+  - Scared ghosts are vulnerable and can be eaten for points
+  - Eaten ghosts return to the center and respawn
+  - Ghosts blink when power mode is about to end
 
 ## Features
 
@@ -72,6 +82,9 @@ This section tracks all PRs that contributed to building this game:
 🔊 **Sound Effects:**
 - Movement sounds (retro beeps)
 - Pellet eating sounds (ascending tones)
+- **Power pellet sound (rising tone sequence)**
+- **Power mode music (continuous chase theme)**
+- **Ghost eating sound (ascending scale)**
 - Life loss sounds (descending alarm)
 - Game over sound (dramatic sequence)
 - Level complete sound (victory fanfare)
