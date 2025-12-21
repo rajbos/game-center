@@ -8,6 +8,8 @@ This repository is a demonstration of how GitHub Copilot can be used to build in
 
 - **Arcade-Style Interface**: Retro-themed game selector with neon glow effects and animations
 - **Dynamic Game Loading**: Games are configured via JSON and loaded at runtime
+- **PR Tracking System**: Automatic tracking of PRs that contribute to each game
+- **Development History**: Side panel in games showing full PR history
 - **GitHub Pages Hosting**: Automatically deployed static site
 - **Accessibility-First**: Full keyboard navigation and screen reader support
 - **Security-Hardened**: XSS prevention and safe DOM manipulation throughout

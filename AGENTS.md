@@ -118,8 +118,48 @@ Add your game to the manifest with full metadata:
 - **createdWith**: The AI tool used (e.g., "GitHub Copilot Coding Agent", "GitHub Copilot")
 - **model**: The specific AI model name (e.g., "Claude 3.5 Sonnet", "GPT-4", "GPT-4o")
 - **prLinks**: Array of PR URLs that built/modified this game, with newest first
+- **prCount**: (Optional) Number of PRs that contributed to this game - updated automatically by workflow
 
 **Note**: Always add the current PR link as the first item in the `prLinks` array when creating or modifying a game.
+
+### Step 3a: Create game-info.yaml (Optional but Recommended)
+
+For detailed PR tracking, create a `game-info.yaml` file in your game folder:
+
+```yaml
+# Game Information and PR Tracking
+game:
+  id: your-game-name
+  name: "Your Game Display Name"
+  description: "Brief description"
+
+# Pull Requests that modified this game (newest first)
+pull_requests:
+  - number: 123
+    title: "PR title"
+    url: "https://github.com/rajbos/game-center/pull/123"
+    merged_at: "2025-12-21T17:23:43Z"
+    author: "username"
+    description: "What this PR added/changed"
+
+# Statistics
+stats:
+  total_prs: 1
+  first_pr_date: "2025-12-21T17:23:43Z"
+  last_pr_date: "2025-12-21T17:23:43Z"
+```
+
+**Benefits of game-info.yaml:**
+- Automatic PR tracking via GitHub Actions workflow
+- PR history displayed in game's side panel
+- Detailed PR metadata (title, description, merge date, author)
+- Automatic update of `prCount` in games.json
+
+**Automatic Workflow**: When you merge a PR that modifies files in a game folder, the `.github/workflows/update-game-pr-tracking.yml` workflow automatically:
+1. Detects which games were modified
+2. Updates the game-info.yaml file with the new PR
+3. Updates the prCount in games.json
+4. Commits the changes back to main
 
 ### Step 4: Test Locally
 

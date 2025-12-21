@@ -627,7 +627,8 @@
                 if (inPRSection) {
                     if (trimmed.startsWith('- number:')) {
                         if (currentPR) result.pull_requests.push(currentPR);
-                        currentPR = { number: parseInt(trimmed.split(':')[1]) };
+                        const prNum = parseInt(trimmed.split(':')[1], 10);
+                        currentPR = { number: isNaN(prNum) ? 0 : prNum };
                     } else if (currentPR) {
                         if (trimmed.startsWith('title:')) {
                             currentPR.title = trimmed.substring(7).replace(/^"(.*)"$/, '$1');
@@ -643,7 +644,8 @@
                 
                 if (inStatsSection) {
                     if (trimmed.startsWith('total_prs:')) {
-                        result.stats.total_prs = parseInt(trimmed.split(':')[1]);
+                        const total = parseInt(trimmed.split(':')[1], 10);
+                        result.stats.total_prs = isNaN(total) ? 0 : total;
                     }
                 }
             });
