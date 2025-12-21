@@ -188,6 +188,20 @@
         .ghost {
             font-size: 22px;
         }
+        
+        .ghost.scared {
+            animation: shake 0.2s infinite;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            75% { transform: translateX(2px); }
+        }
+        
+        .ghost.warning {
+            animation: blink 0.3s infinite;
+        }
 
         #game-info {
             display: flex;
@@ -347,7 +361,7 @@
 
     <div id="instructions">
         🖱️ Desktop: Use Arrow Keys to Move | 📱 Mobile: Swipe or Use Buttons Below<br>
-        Eat all pellets to win! | Avoid the ghosts! 👻
+        Eat all pellets to win! | Power pellets (●) let you eat ghosts! 👻💥
     </div>
 
     <div id="touch-controls">
@@ -387,12 +401,19 @@
         let playerDirection = { x: 0, y: 0 };
         let nextDirection = { x: 0, y: 0 };
         
+        // Power mode state
+        let powerMode = false;
+        let powerModeTimer = 0;
+        const POWER_MODE_DURATION = 8000; // 8 seconds
+        const POWER_MODE_WARNING = 2000; // Start warning 2 seconds before end
+        let ghostsEatenThisPower = 0;
+        
         // Ghost states
         let ghosts = [
-            { x: 8, y: 9, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
-            { x: 9, y: 9, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
-            { x: 10, y: 9, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
-            { x: 9, y: 10, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
+            { x: 8, y: 9, emoji: '👻', originalEmoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 }, scared: false, eaten: false },
+            { x: 9, y: 9, emoji: '👾', originalEmoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 }, scared: false, eaten: false },
+            { x: 10, y: 9, emoji: '🤖', originalEmoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 }, scared: false, eaten: false },
+            { x: 9, y: 10, emoji: '💀', originalEmoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 }, scared: false, eaten: false }
         ];
         
         // Maze layout (1 = wall, 0 = path, 2 = pellet, 3 = power pellet)
@@ -483,6 +504,74 @@
             }
         }
         
+        function playPowerPelletSound() {
+            // Rising tone sequence
+            for (let i = 0; i < 4; i++) {
+                setTimeout(() => playSound(300 + i * 100, 0.15, 'sine'), i * 50);
+            }
+        }
+        
+        function playEatGhostSound() {
+            // Ascending scale
+            playSound(400, 0.1);
+            setTimeout(() => playSound(500, 0.1), 80);
+            setTimeout(() => playSound(600, 0.1), 160);
+            setTimeout(() => playSound(800, 0.15), 240);
+        }
+        
+        function playPowerModeMusic() {
+            if (!audioContext || !powerMode) return;
+            
+            // Play a continuous low frequency "chase" music
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 220; // Low A note
+                oscillator.type = 'square';
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+                
+                // Second note
+                setTimeout(() => {
+                    if (!powerMode) return;
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.frequency.value = 196; // G note
+                    osc2.type = 'square';
+                    gain2.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    osc2.start(audioContext.currentTime);
+                    osc2.stop(audioContext.currentTime + 0.2);
+                }, 250);
+            } catch (e) {
+                // Ignore audio errors
+            }
+        }
+        
+        // Play power mode music continuously
+        let powerMusicInterval = null;
+        
+        function startPowerModeMusic() {
+            if (powerMusicInterval) clearInterval(powerMusicInterval);
+            playPowerModeMusic();
+            powerMusicInterval = setInterval(playPowerModeMusic, 500);
+        }
+        
+        function stopPowerModeMusic() {
+            if (powerMusicInterval) {
+                clearInterval(powerMusicInterval);
+                powerMusicInterval = null;
+            }
+        }
+        
         // Initialize the game board
         function initBoard() {
             const board = document.getElementById('game-board');
@@ -517,7 +606,7 @@
             // Clear all player and ghost positions
             document.querySelectorAll('.player, .ghost').forEach(el => {
                 el.textContent = '';
-                el.classList.remove('player', 'ghost');
+                el.classList.remove('player', 'ghost', 'scared', 'warning');
             });
             
             // Draw player
@@ -529,10 +618,22 @@
             
             // Draw ghosts
             ghosts.forEach(ghost => {
+                if (ghost.eaten) return; // Don't draw eaten ghosts
+                
                 const ghostCell = document.getElementById(`cell-${ghost.x}-${ghost.y}`);
                 if (ghostCell && !ghostCell.classList.contains('wall')) {
                     ghostCell.textContent = ghost.emoji;
                     ghostCell.classList.add('ghost');
+                    
+                    if (ghost.scared) {
+                        ghostCell.classList.add('scared');
+                        
+                        // Check if we should show warning blink
+                        const timeLeft = POWER_MODE_DURATION - (Date.now() - powerModeTimer);
+                        if (timeLeft <= POWER_MODE_WARNING) {
+                            ghostCell.classList.add('warning');
+                        }
+                    }
                 }
             });
             
@@ -573,11 +674,19 @@
                 
                 // Check for pellets
                 if (gameBoard[playerPos.y][playerPos.x] === 2 || gameBoard[playerPos.y][playerPos.x] === 3) {
-                    const points = gameBoard[playerPos.y][playerPos.x] === 3 ? 50 : 10;
+                    const isPowerPellet = gameBoard[playerPos.y][playerPos.x] === 3;
+                    const points = isPowerPellet ? 50 : 10;
                     score += points;
                     gameBoard[playerPos.y][playerPos.x] = 0;
                     eatenPellets++;
-                    playEatSound();
+                    
+                    if (isPowerPellet) {
+                        // Activate power mode
+                        activatePowerMode();
+                        playPowerPelletSound();
+                    } else {
+                        playEatSound();
+                    }
                     
                     // Remove pellet from display
                     const cell = document.getElementById(`cell-${playerPos.x}-${playerPos.y}`);
@@ -598,11 +707,67 @@
             }
         }
         
+        // Activate power mode
+        function activatePowerMode() {
+            powerMode = true;
+            powerModeTimer = Date.now();
+            ghostsEatenThisPower = 0;
+            
+            // Make all ghosts scared
+            ghosts.forEach(ghost => {
+                if (!ghost.eaten) {
+                    ghost.scared = true;
+                    ghost.emoji = '😱'; // Scared emoji
+                }
+            });
+            
+            startPowerModeMusic();
+        }
+        
+        // Deactivate power mode
+        function deactivatePowerMode() {
+            powerMode = false;
+            stopPowerModeMusic();
+            
+            // Return ghosts to normal
+            ghosts.forEach(ghost => {
+                ghost.scared = false;
+                ghost.emoji = ghost.originalEmoji;
+            });
+        }
+        
         // Move ghosts with simple AI
         function moveGhosts() {
             if (!gameRunning) return;
             
             ghosts.forEach(ghost => {
+                if (ghost.eaten) {
+                    // Eaten ghosts return to center
+                    if (ghost.x !== 9 || ghost.y !== 9) {
+                        // Simple pathfinding to center
+                        if (ghost.x < 9 && isValidMove(ghost.x + 1, ghost.y)) {
+                            ghost.x++;
+                        } else if (ghost.x > 9 && isValidMove(ghost.x - 1, ghost.y)) {
+                            ghost.x--;
+                        } else if (ghost.y < 9 && isValidMove(ghost.x, ghost.y + 1)) {
+                            ghost.y++;
+                        } else if (ghost.y > 9 && isValidMove(ghost.x, ghost.y - 1)) {
+                            ghost.y--;
+                        }
+                    } else {
+                        // Reached center, respawn
+                        ghost.eaten = false;
+                        if (powerMode) {
+                            ghost.scared = true;
+                            ghost.emoji = '😱';
+                        } else {
+                            ghost.scared = false;
+                            ghost.emoji = ghost.originalEmoji;
+                        }
+                    }
+                    return;
+                }
+                
                 const possibleMoves = [];
                 const directions = [
                     { x: 0, y: -1 }, // up
@@ -635,10 +800,10 @@
                 }
                 
                 if (possibleMoves.length > 0) {
-                    // 70% chance to move towards player, 30% random
                     let chosenDir;
-                    if (Math.random() < 0.7) {
-                        // Move towards player
+                    
+                    if (ghost.scared) {
+                        // Scared ghosts flee from player (move away)
                         chosenDir = possibleMoves.reduce((best, dir) => {
                             const newX = ghost.x + dir.x;
                             const newY = ghost.y + dir.y;
@@ -646,11 +811,25 @@
                             const bestNewX = ghost.x + best.x;
                             const bestNewY = ghost.y + best.y;
                             const bestDist = Math.abs(bestNewX - playerPos.x) + Math.abs(bestNewY - playerPos.y);
-                            return newDist < bestDist ? dir : best;
+                            return newDist > bestDist ? dir : best; // Choose direction that increases distance
                         });
                     } else {
-                        // Random move
-                        chosenDir = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                        // Normal behavior: 70% chance to move towards player, 30% random
+                        if (Math.random() < 0.7) {
+                            // Move towards player
+                            chosenDir = possibleMoves.reduce((best, dir) => {
+                                const newX = ghost.x + dir.x;
+                                const newY = ghost.y + dir.y;
+                                const newDist = Math.abs(newX - playerPos.x) + Math.abs(newY - playerPos.y);
+                                const bestNewX = ghost.x + best.x;
+                                const bestNewY = ghost.y + best.y;
+                                const bestDist = Math.abs(bestNewX - playerPos.x) + Math.abs(bestNewY - playerPos.y);
+                                return newDist < bestDist ? dir : best;
+                            });
+                        } else {
+                            // Random move
+                            chosenDir = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                        }
                     }
                     
                     ghost.direction = chosenDir;
@@ -665,10 +844,33 @@
         // Check collision with ghosts
         function checkGhostCollision() {
             ghosts.forEach(ghost => {
+                if (ghost.eaten) return;
+                
                 if (ghost.x === playerPos.x && ghost.y === playerPos.y) {
-                    loseLife();
+                    if (powerMode && ghost.scared) {
+                        // Eat the ghost!
+                        eatGhost(ghost);
+                    } else if (!ghost.scared) {
+                        // Ghost catches player
+                        loseLife();
+                    }
                 }
             });
+        }
+        
+        // Eat a ghost
+        function eatGhost(ghost) {
+            ghost.eaten = true;
+            ghost.scared = false;
+            
+            // Calculate points based on combo (200, 400, 800, 1600)
+            const points = 200 * Math.pow(2, ghostsEatenThisPower);
+            score += points;
+            ghostsEatenThisPower++;
+            
+            playEatGhostSound();
+            
+            // Show points popup (optional visual feedback could be added here)
         }
         
         // Lose a life
@@ -677,6 +879,11 @@
             
             lives--;
             playLoseLifeSound();
+            
+            // Deactivate power mode
+            if (powerMode) {
+                deactivatePowerMode();
+            }
             
             if (lives <= 0) {
                 gameOver();
@@ -687,10 +894,10 @@
                 nextDirection = { x: 0, y: 0 };
                 
                 ghosts = [
-                    { x: 8, y: 9, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
-                    { x: 9, y: 9, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
-                    { x: 10, y: 9, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
-                    { x: 9, y: 10, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
+                    { x: 8, y: 9, emoji: '👻', originalEmoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 }, scared: false, eaten: false },
+                    { x: 9, y: 9, emoji: '👾', originalEmoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 }, scared: false, eaten: false },
+                    { x: 10, y: 9, emoji: '🤖', originalEmoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 }, scared: false, eaten: false },
+                    { x: 9, y: 10, emoji: '💀', originalEmoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 }, scared: false, eaten: false }
                 ];
                 
                 updateDisplay();
@@ -702,6 +909,11 @@
             gameRunning = false;
             level++;
             score += 200; // Level bonus
+            
+            // Deactivate power mode
+            if (powerMode) {
+                deactivatePowerMode();
+            }
             
             // Play victory sound
             playSound(523, 0.2);
@@ -719,10 +931,10 @@
                 nextDirection = { x: 0, y: 0 };
                 
                 ghosts = [
-                    { x: 8, y: 9, emoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 } },
-                    { x: 9, y: 9, emoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 } },
-                    { x: 10, y: 9, emoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 } },
-                    { x: 9, y: 10, emoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 } }
+                    { x: 8, y: 9, emoji: '👻', originalEmoji: '👻', color: '#ff0000', direction: { x: 1, y: 0 }, scared: false, eaten: false },
+                    { x: 9, y: 9, emoji: '👾', originalEmoji: '👾', color: '#ff69b4', direction: { x: -1, y: 0 }, scared: false, eaten: false },
+                    { x: 10, y: 9, emoji: '🤖', originalEmoji: '🤖', color: '#00ffff', direction: { x: 0, y: 1 }, scared: false, eaten: false },
+                    { x: 9, y: 10, emoji: '💀', originalEmoji: '💀', color: '#ffa500', direction: { x: 0, y: -1 }, scared: false, eaten: false }
                 ];
                 
                 gameRunning = true;
@@ -848,6 +1060,11 @@
         const ghostSpeed = 200; // ms between moves
         
         function gameLoop(timestamp) {
+            // Check power mode timeout
+            if (powerMode && (Date.now() - powerModeTimer) >= POWER_MODE_DURATION) {
+                deactivatePowerMode();
+            }
+            
             if (timestamp - lastPlayerMove > playerSpeed) {
                 movePlayer();
                 updateDisplay();
