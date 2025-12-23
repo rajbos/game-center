@@ -10,6 +10,18 @@
       "model": "Claude 3.5 Sonnet",
       "prLinks": [],
       "prCount": 5
+    },
+    {
+      "id": "arkanoid",
+      "name": "Arkanoid",
+      "description": "Break all the bricks with the paddle and ball in this classic! Responsive and playable on desktop and mobile.",
+      "status": "In Development",
+      "path": "./games/game-2",
+      "createdWith": "GitHub Copilot Coding Agent",
+      "model": "GPT-4.1",
+      "prLinks": [
+        "https://github.com/rajbos/game-center/pull/XXX"
+      ]
     }
   ]
 }
