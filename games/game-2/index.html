@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arkanoid</title>
+    <style>
+        body {
+            background: #111;
+            color: #00ff00;
+            font-family: 'Press Start 2P', monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        #gameCanvas {
+            background: #222;
+            box-shadow: 0 0 20px #00ff00;
+            margin-top: 32px;
+            border-radius: 8px;
+            display: block;
+        }
+        @media (max-width: 600px) {
+            #gameCanvas {
+                width: 100vw;
+                height: 60vw;
+                max-width: 375px;
+                max-height: 225px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Arkanoid</h1>
+        <div style="display:flex;justify-content:space-between;width:375px;max-width:100vw;margin-top:8px;">
+                <span id="score">Score: 0</span>
+                <span id="lives">Levens: 3</span>
+        </div>
+        <canvas id="gameCanvas" width="375" height="225" tabindex="0" aria-label="Arkanoid game area"></canvas>
+        <p id="instructions">Gebruik de pijltjestoetsen of swipe om het batje te bewegen.</p>
+        <script>
+        // Arkanoid layout & rendering
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        // Layout
+        const paddle = { width: 60, height: 10, x: canvas.width/2-30, y: canvas.height-18, speed: 6 };
+        const ball = { x: canvas.width/2, y: canvas.height-30, radius: 5, dx: 2, dy: -2 };
+        const brick = { rows: 4, cols: 8, width: 40, height: 12, padding: 4, offsetTop: 30, offsetLeft: 10 };
+        let bricks = [];
+        for(let r=0;r<brick.rows;r++){
+            bricks[r]=[];
+            for(let c=0;c<brick.cols;c++){
+                bricks[r][c]={x:brick.offsetLeft+c*(brick.width+brick.padding),y:brick.offsetTop+r*(brick.height+brick.padding),status:1};
+            }
+        }
+        let score=0, lives=3;
+        function drawPaddle(){
+            ctx.fillStyle='#00ff00';
+            ctx.fillRect(paddle.x,paddle.y,paddle.width,paddle.height);
+        }
+        function drawBall(){
+            ctx.beginPath();
+            ctx.arc(ball.x,ball.y,ball.radius,0,Math.PI*2);
+            ctx.fillStyle='#ff00ff';
+            ctx.fill();
+            ctx.closePath();
+        }
+        function drawBricks(){
+            for(let r=0;r<brick.rows;r++){
+                for(let c=0;c<brick.cols;c++){
+                    if(bricks[r][c].status){
+                        ctx.fillStyle='#00ffff';
+                        ctx.fillRect(bricks[r][c].x,bricks[r][c].y,brick.width,brick.height);
+                    }
+                }
+            }
+        }
+        function drawHUD(){
+            document.getElementById('score').textContent='Score: '+score;
+            document.getElementById('lives').textContent='Levens: '+lives;
+        }
+        function draw(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            drawBricks();
+            drawPaddle();
+            drawBall();
+            drawHUD();
+        }
+        // Controls
+        let rightPressed=false, leftPressed=false;
+        document.addEventListener('keydown',e=>{
+            if(e.key==='ArrowRight'||e.key==='d'){rightPressed=true;}
+            if(e.key==='ArrowLeft'||e.key==='a'){leftPressed=true;}
+        });
+        document.addEventListener('keyup',e=>{
+            if(e.key==='ArrowRight'||e.key==='d'){rightPressed=false;}
+            if(e.key==='ArrowLeft'||e.key==='a'){leftPressed=false;}
+        });
+        // Touch controls
+        let touchX=null;
+        canvas.addEventListener('touchstart',e=>{
+            if(e.touches.length>0){touchX=e.touches[0].clientX;}
+        });
+        canvas.addEventListener('touchmove',e=>{
+            if(e.touches.length>0){
+                let dx=e.touches[0].clientX-touchX;
+                paddle.x+=dx/2;
+                touchX=e.touches[0].clientX;
+            }
+        });
+        // Game loop
+        function collisionDetection(){
+            for(let r=0;r<brick.rows;r++){
+                for(let c=0;c<brick.cols;c++){
+                    let b=bricks[r][c];
+                    if(b.status){
+                        if(ball.x>b.x&&ball.x<b.x+brick.width&&ball.y>b.y&&ball.y<b.y+brick.height){
+                            ball.dy=-ball.dy;
+                            b.status=0;
+                            score+=10;
+                            if(score===brick.rows*brick.cols*10){
+                                setTimeout(()=>alert('Gefeliciteerd! Je hebt gewonnen!'),100);
+                                document.location.reload();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        function update(){
+            // Paddle movement
+            if(rightPressed){paddle.x+=paddle.speed;}
+            if(leftPressed){paddle.x-=paddle.speed;}
+            // Grenzen
+            if(paddle.x<0)paddle.x=0;
+            if(paddle.x+paddle.width>canvas.width)paddle.x=canvas.width-paddle.width;
+            // Ball movement
+            ball.x+=ball.dx;
+            ball.y+=ball.dy;
+            // Wall collision
+            if(ball.x<ball.radius||ball.x>canvas.width-ball.radius){ball.dx=-ball.dx;}
+            if(ball.y<ball.radius){ball.dy=-ball.dy;}
+            // Paddle collision
+            if(ball.y>paddle.y-ball.radius&&ball.x>paddle.x&&ball.x<paddle.x+paddle.width){
+                ball.dy=-Math.abs(ball.dy);
+            }
+            // Bottom collision
+            if(ball.y>canvas.height-ball.radius){
+                lives--;
+                if(lives===0){
+                    setTimeout(()=>alert('Game Over!'),100);
+                    document.location.reload();
+                }else{
+                    ball.x=canvas.width/2;ball.y=canvas.height-30;ball.dx=2;ball.dy=-2;
+                    paddle.x=canvas.width/2-30;
+                }
+            }
+            collisionDetection();
+        }
+        function loop(){
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+        loop();
+        </script>
+</body>
+</html>

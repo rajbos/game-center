@@ -6,6 +6,8 @@ This repository is a game center showcasing games built with GitHub Copilot. It 
 
 ## Architecture
 
+Games are stored in the `/games/` directory, each in its own subfolder. The main arcade interface is defined in `index.html`, which reads `games.json` to display available games.
+
 ### Key Files
 
 - **`index.html`**: The arcade-style game selector interface with retro aesthetics
@@ -30,6 +32,7 @@ Games are configured in `games.json` and dynamically loaded at runtime:
   ]
 }
 ```
+Always add new games to this file as well. 
 
 The JavaScript in `index.html` fetches this JSON and renders game cards using safe DOM manipulation.
 
