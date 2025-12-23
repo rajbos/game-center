@@ -35,9 +35,6 @@ python3 -m http.server 8000
 # Option 2: Node.js http-server (requires Node.js)
 npx http-server -p 8000
 
-# Option 3: PHP (if installed)
-php -S localhost:8000
-
 # Then open http://localhost:8000 in your browser
 ```
 
@@ -105,6 +102,8 @@ node tests/validate-structure.test.js && node tests/validate-website.test.js
    ```
 
 5. **Test locally** and submit a PR!
+
+To run the index.html locally, follow the instructions in the "Running Locally" section above. Validate your changes and contribute.
 
 For detailed instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
