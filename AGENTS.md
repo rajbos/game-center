@@ -162,7 +162,8 @@ stats:
 1. Detects which games were modified
 2. Updates the game-info.yaml file with the new PR
 3. Updates the prCount in games.json
-4. Commits the changes back to main
+4. Creates a new PR with these changes (complies with branch protection rules)
+5. The new PR will be validated by the `validate` workflow before it can be merged
 
 ### Step 3b: Add PR History Panel to Your Game (Optional)
 
