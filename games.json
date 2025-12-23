@@ -12,11 +12,23 @@
       "prCount": 5
     },
     {
-      "id": "arkanoid",
+      "id": "game-2",
       "name": "Arkanoid",
       "description": "Break all the bricks with the paddle and ball in this classic! Responsive and playable on desktop and mobile.",
       "status": "In Development",
       "path": "./games/game-2",
+      "createdWith": "GitHub Copilot Coding Agent",
+      "model": "GPT-4.1",
+      "prLinks": [
+        "https://github.com/rajbos/game-center/pull/XXX"
+      ]
+    },
+    {
+      "id": "game-3",
+      "name": "Head Ball",
+      "description": "A one-on-one soccer game with Lamborghini cars! Score goals, unlock power-ups, and enjoy confetti celebrations.",
+      "status": "In Development",
+      "path": "./games/game-3",
       "createdWith": "GitHub Copilot Coding Agent",
       "model": "GPT-4.1",
       "prLinks": [

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Head Ball</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #222 60%, #00ff99 100%);
+            color: #fff;
+            font-family: 'Press Start 2P', monospace, Arial;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            margin-top: 32px;
+            font-size: 2rem;
+            text-shadow: 0 0 8px #00ff99;
+        }
+        #game-canvas {
+            background: #333;
+            border: 4px solid #00ff99;
+            border-radius: 16px;
+            margin: 32px 0;
+            display: block;
+        }
+        .controls {
+            margin-bottom: 24px;
+        }
+        .controls span {
+            background: #00ff99;
+            color: #222;
+            padding: 6px 12px;
+            border-radius: 8px;
+            margin: 0 8px;
+            font-size: 1rem;
+        }
+        @media (max-width: 600px) {
+            #game-canvas {
+                width: 320px;
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Head Ball</h1>
+    <div class="controls">
+        <span>Pijltjestoetsen: bewegen (Speler 1)</span>
+        <span>Spatie: springen/koppen (Speler 1)</span>
+        <span>A/D: bewegen (Speler 2)</span>
+        <span>W: springen/koppen (Speler 2)</span>
+    </div>
+    <canvas id="game-canvas" width="480" height="270"></canvas>
+    <script>
+        // Head Ball gameplay - scoren en score bijhouden
+        const canvas = document.getElementById('game-canvas');
+        canvas.width = 960;
+        canvas.height = 270;
+        const ctx = canvas.getContext('2d');
+
+        // Spelers en bal
+        const player1 = { x: 80, y: canvas.height/2, vx: 0, vy: 0, color: '#00ff99', radius: 28, jump: false };
+        const player2 = { x: canvas.width-80, y: canvas.height/2, vx: 0, vy: 0, color: '#222', radius: 28, jump: false };
+        const ball = { x: canvas.width/2, y: canvas.height/2, vx: 2, vy: 0, radius: 14 };
+
+        const gravity = 0.7;
+        const ground = canvas.height - 28;
+
+        // Goals op de grond
+        const goalWidth = 16;
+        const goalHeight = 64;
+        const goalY = ground - goalHeight + 2;
+
+        let score1 = 0;
+        let score2 = 0;
+
+        // Confetti
+        let confetti = [];
+        let confettiTimer = 0;
+
+        // Prevent multiple scoring
+        let scoringPaused = false;
+        let ballVisible = true;
+
+        // Power-ups
+        let powerUp1 = { turbo: false, superJump: false, timer: 0 };
+        let powerUp2 = { turbo: false, superJump: false, timer: 0 };
+
+        let keys = {};
+        document.addEventListener('keydown', e => { keys[e.code] = true; });
+        document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+        function drawField() {
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, canvas.width-20, canvas.height-20);
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, 40, 0, 2*Math.PI);
+            ctx.stroke();
+            // Goals
+            drawGoal(0, goalY);
+            drawGoal(canvas.width-goalWidth, goalY);
+        }
+        function drawGoal(x, y) {
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(x, y, goalWidth, goalHeight);
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = '#00ff99';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, goalWidth, goalHeight);
+            ctx.restore();
+        }
+        function drawPlayer(p) {
+            // Lamborghini Urus zijaanzicht
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            // Body: langwerpig, schuine daklijn
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.moveTo(-p.radius*1.2, 0); // links onder
+            ctx.lineTo(-p.radius*1.1, -p.radius*0.5); // links dak
+            ctx.lineTo(p.radius*1.1, -p.radius*0.7); // rechts dak
+            ctx.lineTo(p.radius*1.2, 0); // rechts onder
+            ctx.lineTo(p.radius*1.1, p.radius*0.5); // rechts achter
+            ctx.lineTo(-p.radius*1.1, p.radius*0.5); // links achter
+            ctx.closePath();
+            ctx.fill();
+            // Zwarte accenten: ramen
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.moveTo(-p.radius*0.9, -p.radius*0.45);
+            ctx.lineTo(p.radius*0.9, -p.radius*0.65);
+            ctx.lineTo(p.radius*0.7, -p.radius*0.1);
+            ctx.lineTo(-p.radius*0.7, -p.radius*0.1);
+            ctx.closePath();
+            ctx.fill();
+            // Deur-lijn
+            ctx.strokeStyle = '#111';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -p.radius*0.1);
+            ctx.lineTo(0, p.radius*0.5);
+            ctx.stroke();
+            // Sportieve zijlijn
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-p.radius*1.1, p.radius*0.3);
+            ctx.lineTo(p.radius*1.1, p.radius*0.3);
+            ctx.stroke();
+            // Wielen
+            ctx.fillStyle = '#444';
+            ctx.beginPath();
+            ctx.arc(-p.radius*0.8, p.radius*0.5, p.radius*0.4, 0, 2*Math.PI);
+            ctx.arc(p.radius*0.8, p.radius*0.5, p.radius*0.4, 0, 2*Math.PI);
+            ctx.fill();
+            // Koplampen
+            ctx.fillStyle = '#fff200';
+            ctx.beginPath();
+            ctx.ellipse(p.radius*1.18, -p.radius*0.2, 8, 4, 0, 0, 2*Math.PI);
+            ctx.fill();
+            // Achterlicht
+            ctx.fillStyle = '#ff0033';
+            ctx.beginPath();
+            ctx.ellipse(-p.radius*1.18, -p.radius*0.2, 8, 4, 0, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.restore();
+        }
+        function drawBall() {
+            if (!ballVisible) return;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, 2*Math.PI);
+            ctx.fill();
+        }
+        function drawScore() {
+            ctx.save();
+            ctx.font = 'bold 32px Arial';
+            ctx.fillStyle = '#00ff99';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${score1} - ${score2}`, canvas.width/2, 48);
+            ctx.restore();
+        }
+
+        function updatePlayer(p, left, right, jump) {
+            // Turbo boost
+            let speed = 4;
+            let jumpPower = 12;
+            if (p === player1 && powerUp1.turbo) speed = 8;
+            if (p === player2 && powerUp2.turbo) speed = 8;
+            if (p === player1 && powerUp1.superJump) jumpPower = 20;
+            if (p === player2 && powerUp2.superJump) jumpPower = 20;
+
+            if (keys[left]) p.vx = -speed;
+            else if (keys[right]) p.vx = speed;
+            else p.vx = 0;
+            if (keys[jump] && !p.jump) {
+                p.vy = -jumpPower;
+                p.jump = true;
+            }
+            p.vy += gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            if (p.y > ground) {
+                p.y = ground;
+                p.vy = 0;
+                p.jump = false;
+            }
+            p.x = Math.max(p.radius, Math.min(canvas.width-p.radius, p.x));
+        }
+
+        function updateBall() {
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            ball.vy += gravity*0.7;
+            if (ball.y > ground) {
+                ball.y = ground;
+                ball.vy *= -0.7;
+            }
+            // Score check
+            checkGoal();
+            if (ball.x < ball.radius || ball.x > canvas.width-ball.radius) {
+                ball.vx *= -1;
+            }
+        }
+
+        function checkGoal() {
+            if (scoringPaused) return;
+            
+            // Linker goal
+            if (
+                ball.x - ball.radius < goalWidth &&
+                ball.y + ball.radius > goalY &&
+                ball.y - ball.radius < goalY + goalHeight
+            ) {
+                score2++;
+                scoringPaused = true;
+                ballVisible = false;
+                if (score2 % 2 === 0) {
+                    powerUp2.turbo = true;
+                    powerUp2.superJump = true;
+                    powerUp2.timer = 600; // frames (ca. 10 sec)
+                }
+                launchConfetti(canvas.width * 0.1, canvas.height * 0.5);
+                setTimeout(() => {
+                    resetPositions();
+                    scoringPaused = false;
+                    ballVisible = true;
+                }, 600);
+                return;
+            }
+            // Rechter goal
+            if (
+                ball.x + ball.radius > canvas.width - goalWidth &&
+                ball.y + ball.radius > goalY &&
+                ball.y - ball.radius < goalY + goalHeight
+            ) {
+                score1++;
+                scoringPaused = true;
+                ballVisible = false;
+                if (score1 % 2 === 0) {
+                    powerUp1.turbo = true;
+                    powerUp1.superJump = true;
+                    powerUp1.timer = 600;
+                }
+                launchConfetti(canvas.width * 0.9, canvas.height * 0.5);
+                setTimeout(() => {
+                    resetPositions();
+                    scoringPaused = false;
+                    ballVisible = true;
+                }, 600);
+            }
+        }
+
+        function resetPositions() {
+            player1.x = 80; player1.y = canvas.height/2; player1.vx = 0; player1.vy = 0;
+            player2.x = canvas.width-80; player2.y = canvas.height/2; player2.vx = 0; player2.vy = 0;
+            ball.x = canvas.width/2; ball.y = canvas.height/2; ball.vx = (Math.random()<0.5?2:-2); ball.vy = 0;
+        }
+
+        function collide(p, b) {
+            const dx = b.x - p.x;
+            const dy = b.y - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < p.radius + b.radius) {
+                const angle = Math.atan2(dy, dx);
+                b.vx += Math.cos(angle)*4;
+                b.vy += Math.sin(angle)*4;
+            }
+        }
+
+        function gameLoop() {
+            // Confetti animatie update
+            if (confetti.length > 0) {
+                if (confettiTimer > 0) {
+                    confettiTimer--;
+                    updateConfetti();
+                }
+                if (confettiTimer === 0) confetti = [];
+            }
+            // Power-up timers
+            if (powerUp1.timer > 0) {
+                powerUp1.timer--;
+                if (powerUp1.timer === 0) {
+                    powerUp1.turbo = false;
+                    powerUp1.superJump = false;
+                }
+            }
+            if (powerUp2.timer > 0) {
+                powerUp2.timer--;
+                if (powerUp2.timer === 0) {
+                    powerUp2.turbo = false;
+                    powerUp2.superJump = false;
+                }
+            }
+
+            updatePlayer(player1, 'ArrowLeft', 'ArrowRight', 'Space');
+            updatePlayer(player2, 'KeyA', 'KeyD', 'KeyW');
+            updateBall();
+            collide(player1, ball);
+            collide(player2, ball);
+
+            drawField();
+            drawPlayer(player1);
+            drawPlayer(player2);
+            drawBall();
+            drawScore();
+
+            // Confetti draw (na alles anders)
+            if (confetti.length > 0) {
+                drawConfetti();
+            }
+
+            // Power-up indicator
+            ctx.save();
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#fff200';
+            if (powerUp1.turbo || powerUp1.superJump) {
+                ctx.fillText('POWER-UP!', 120, 40);
+            }
+            if (powerUp2.turbo || powerUp2.superJump) {
+                ctx.fillText('POWER-UP!', canvas.width-120, 40);
+            }
+            ctx.restore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function launchConfetti(x, y) {
+            confetti = [];
+            for (let i = 0; i < 80; i++) {
+                confetti.push({
+                    x: x,
+                    y: y,
+                    vx: Math.random()*7-3.5,
+                    vy: Math.random()*-8-2,
+                    color: `hsl(${Math.random()*360},90%,60%)`,
+                    size: Math.random()*7+4,
+                    life: 100+Math.random()*40
+                });
+            }
+            confettiTimer = 100;
+        }
+
+        function updateConfetti() {
+            for (let c of confetti) {
+                c.x += c.vx;
+                c.y += c.vy;
+                c.vy += 0.3;
+                c.life--;
+            }
+            confetti = confetti.filter(c => c.life > 0);
+        }
+
+        function drawConfetti() {
+            for (let c of confetti) {
+                ctx.save();
+                ctx.fillStyle = c.color;
+                ctx.globalAlpha = Math.max(0.2, c.life/90);
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.size, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
