@@ -435,7 +435,8 @@ const MAX_LEVELS = 5;
 const T_FLOOR = 0, T_HARD = 1, T_SOFT = 2, T_EXIT = 3;
 const PU_BOMBUP = 'bombup', PU_FIREUP = 'fireup', PU_SPEEDUP = 'speedup';
 const S_MENU = 'MENU', S_PLAYING = 'PLAYING', S_LEVEL_WIN = 'LEVEL_WIN',
-      S_GAMEOVER = 'GAMEOVER', S_WIN = 'WIN';
+      S_GAMEOVER = 'GAMEOVER', S_WIN = 'WIN',
+      S_START = 'START', S_BOT_WON = 'BOT_WON';
 
 const DIRS = [
     { dx: 0, dy: -1, name: 'up' },
@@ -470,6 +471,13 @@ let bombs     = [];      // [{ x, y, timer, range, state, counted }]
 let explosions = [];     // [{ cells:[{x,y,type}], timer }]
 let enemies   = [];      // [{ x, y, type, alive, moveTimer }]
 let levelTransitioning = false;
+
+// Bot globals
+const BOT_COLORS      = ['#22cc55', '#ddcc00', '#cc44cc', '#44cccc'];
+const BOT_BODY_COLORS = ['#1a9940', '#bb9900', '#992299', '#228899'];
+let aiBots = [];
+let numBots = 1;
+let selectedBots = 1;
 
 const player = {
     x: 1, y: 1,             // float grid coords (render position)
@@ -513,6 +521,100 @@ function explosionAt(col, row) {
 
 function enemiesAlive() {
     return enemies.filter(e => e.alive).length;
+}
+
+// ─── AI BOT HELPERS ──────────────────────────────────────────
+function isCellDangerous(col, row) {
+    if (explosionAt(col, row)) return true;
+    for (const bomb of bombs) {
+        if (bomb.state !== 'armed') continue;
+        if (bomb.x === col && bomb.y === row) return true;
+        for (const dir of DIRS) {
+            for (let i = 1; i <= bomb.range; i++) {
+                const nx = bomb.x + dir.dx * i;
+                const ny = bomb.y + dir.dy * i;
+                const tile = tileAt(nx, ny);
+                if (tile === T_HARD) break;
+                if (nx === col && ny === row) return true;
+                if (tile === T_SOFT) break;
+            }
+        }
+    }
+    return false;
+}
+
+function bfsNextStep(fromX, fromY, toX, toY, avoidDanger) {
+    if (fromX === toX && fromY === toY) return null;
+    const visited = new Set([`${fromX},${fromY}`]);
+    const queue = [{ x: fromX, y: fromY, firstStep: null }];
+    let processed = 0;
+    while (queue.length > 0 && processed < 200) {
+        processed++;
+        const { x, y, firstStep } = queue.shift();
+        for (const dir of DIRS) {
+            const nx = x + dir.dx;
+            const ny = y + dir.dy;
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            const tile = tileAt(nx, ny);
+            if (tile === T_HARD || tile === T_SOFT) continue;
+            if (bombAt(nx, ny)) continue;
+            if (avoidDanger && isCellDangerous(nx, ny)) continue;
+            visited.add(key);
+            const step = firstStep !== null ? firstStep : dir;
+            if (nx === toX && ny === toY) return step;
+            queue.push({ x: nx, y: ny, firstStep: step });
+        }
+    }
+    return null;
+}
+
+function findSafeCell(fromX, fromY) {
+    if (!isCellDangerous(fromX, fromY)) return { x: fromX, y: fromY };
+    const visited = new Set([`${fromX},${fromY}`]);
+    const queue = [{ x: fromX, y: fromY }];
+    let processed = 0;
+    while (queue.length > 0 && processed < 200) {
+        processed++;
+        const { x, y } = queue.shift();
+        for (const dir of DIRS) {
+            const nx = x + dir.dx;
+            const ny = y + dir.dy;
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            const tile = tileAt(nx, ny);
+            if (tile === T_HARD || tile === T_SOFT) continue;
+            if (bombAt(nx, ny)) continue;
+            visited.add(key);
+            if (!isCellDangerous(nx, ny)) return { x: nx, y: ny };
+            queue.push({ x: nx, y: ny });
+        }
+    }
+    return null;
+}
+
+function findNearestBombTarget(fromX, fromY) {
+    const visited = new Set([`${fromX},${fromY}`]);
+    const queue = [{ x: fromX, y: fromY }];
+    let processed = 0;
+    while (queue.length > 0 && processed < 200) {
+        processed++;
+        const { x, y } = queue.shift();
+        for (const dir of DIRS) {
+            if (tileAt(x + dir.dx, y + dir.dy) === T_SOFT) return { x, y };
+        }
+        for (const dir of DIRS) {
+            const nx = x + dir.dx;
+            const ny = y + dir.dy;
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            const tile = tileAt(nx, ny);
+            if (tile === T_HARD || tile === T_SOFT) continue;
+            visited.add(key);
+            queue.push({ x: nx, y: ny });
+        }
+    }
+    return null;
 }
 
 // ─── LEVEL GENERATION ────────────────────────────────────────
@@ -590,9 +692,51 @@ function generateLevel(lvl) {
     player.targetX = 1; player.targetY = 1;
     player.moving = false;
     player.activeBombs = 0;
+
+    // Spawn AI bots — preserve upgrade stats from previous level
+    const savedBotStats = {};
+    aiBots.forEach(b => {
+        savedBotStats[b.colorIdx] = { maxBombs: b.maxBombs, fireRange: b.fireRange, speed: b.speed };
+    });
+    aiBots = [];
+    const remainingFloor = floorCells.slice(softCount);
+    const botCandidates = shuffle(remainingFloor.filter(c =>
+        Math.sqrt((c.x - 1) ** 2 + (c.y - 1) ** 2) >= 6
+    ));
+    for (let i = 0; i < numBots; i++) {
+        let spawnPos = null;
+        for (let j = 0; j < botCandidates.length; j++) {
+            const pos = botCandidates[j];
+            const tooClose = aiBots.some(b =>
+                Math.sqrt((b.gridX - pos.x) ** 2 + (b.gridY - pos.y) ** 2) < 3
+            );
+            if (!tooClose) { spawnPos = botCandidates.splice(j, 1)[0]; break; }
+        }
+        if (!spawnPos && botCandidates.length > 0) spawnPos = botCandidates.shift();
+        if (!spawnPos) spawnPos = { x: COLS - 2, y: ROWS - 2 };
+        const stats = savedBotStats[i] || { maxBombs: 1, fireRange: 1, speed: 3.8 };
+        aiBots.push({
+            x: spawnPos.x, y: spawnPos.y,
+            gridX: spawnPos.x, gridY: spawnPos.y,
+            targetX: spawnPos.x, targetY: spawnPos.y,
+            moving: false,
+            facingDir: 'down',
+            walkFrame: 0, walkTimer: 0,
+            colorIdx: i,
+            alive: true,
+            invincible: false, invTimer: 0,
+            maxBombs: stats.maxBombs,
+            activeBombs: 0,
+            fireRange: stats.fireRange,
+            speed: stats.speed,
+            bombCooldown: 0,
+            decideTimer: 0.5 + Math.random() * 0.5,
+        });
+    }
 }
 
-function startNewGame() {
+function startNewGame(count = 1) {
+    numBots = Math.max(0, Math.min(3, count));
     playSound('game_start');
     level = 1;
     score = 0;
@@ -602,6 +746,7 @@ function startNewGame() {
     player.lives     = 3;
     player.invincible = false;
     player.invTimer   = 0;
+    aiBots = []; // clear so generateLevel creates fresh bots with default stats
     generateLevel(1);
     updateLegendDOM();
     gameState = S_PLAYING;
@@ -617,8 +762,16 @@ document.addEventListener('keydown', e => {
     if (e.key === ' ') { e.preventDefault(); bombPressed = true; }
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
 
-    if (gameState === S_MENU || gameState === S_GAMEOVER || gameState === S_WIN) {
-        if (e.key === ' ' || e.key === 'Enter') startNewGame();
+    if (gameState === S_START) {
+        if (e.key === 'ArrowLeft'  || e.key === 'a' || e.key === 'A') {
+            selectedBots = Math.max(0, selectedBots - 1);
+        } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+            selectedBots = Math.min(3, selectedBots + 1);
+        } else if (e.key === ' ' || e.key === 'Enter') {
+            startNewGame(selectedBots);
+        }
+    } else if (gameState === S_GAMEOVER || gameState === S_WIN) {
+        if (e.key === ' ' || e.key === 'Enter') startNewGame(numBots);
     }
 });
 
@@ -663,7 +816,9 @@ function setupMobileControls() {
     btnBomb.addEventListener('mouseup',     releaseBombBtn);
 
     canvas.addEventListener('touchstart', () => {
-        if (gameState !== S_PLAYING && gameState !== S_LEVEL_WIN) startNewGame();
+        if (audioCtx) audioCtx.resume();
+        if (gameState === S_START) startNewGame(selectedBots);
+        else if (gameState === S_GAMEOVER || gameState === S_WIN) startNewGame(numBots);
     });
 }
 
@@ -687,6 +842,7 @@ function triggerBomb(bomb) {
         bomb.counted = false;
         player.activeBombs = Math.max(0, player.activeBombs - 1);
     }
+    if (bomb.owner) { bomb.owner.activeBombs = Math.max(0, bomb.owner.activeBombs - 1); bomb.owner = null; }
 
     const cells = [{ x: bomb.x, y: bomb.y, type: 'center' }];
     const newPowerups = []; // revealed by THIS explosion — immune to its own filter
@@ -761,6 +917,25 @@ function damagePlayer() {
     player.moving = false;
     player.invincible = true;
     player.invTimer = 2.5;
+}
+
+function botWon() {
+    if (levelTransitioning) return;
+    levelTransitioning = true;
+    player.lives--;
+    if (player.lives <= 0) {
+        playSound('game_over');
+        gameState = S_GAMEOVER;
+        return;
+    }
+    playSound('player_die');
+    gameState = S_BOT_WON;
+    setTimeout(() => {
+        if (gameState === S_BOT_WON) {
+            generateLevel(level);
+            gameState = S_PLAYING;
+        }
+    }, 2200);
 }
 
 // ─── ENEMY AI ────────────────────────────────────────────────
@@ -910,6 +1085,202 @@ function updateLegendDOM() {
     elSpeed.className = 'stat-val' + (player.speed     >= 7.0 ? ' maxed' : '');
 }
 
+// ─── AI BOT LOGIC ────────────────────────────────────────────
+function placeBotBomb(bot) {
+    if (bot.activeBombs >= bot.maxBombs) return false;
+    if (bombAt(bot.gridX, bot.gridY)) return false;
+    bombs.push({ x: bot.gridX, y: bot.gridY, timer: 3.0, range: bot.fireRange,
+                 state: 'armed', counted: false, owner: bot });
+    bot.activeBombs++;
+    bot.bombCooldown = 3.5;
+    playSound('bomb_place');
+    return true;
+}
+
+function startBotMove(bot, nx, ny) {
+    const dx = nx - bot.gridX;
+    const dy = ny - bot.gridY;
+    if (dx < 0) bot.facingDir = 'left';
+    else if (dx > 0) bot.facingDir = 'right';
+    else if (dy < 0) bot.facingDir = 'up';
+    else bot.facingDir = 'down';
+    bot.targetX = nx;
+    bot.targetY = ny;
+    bot.moving = true;
+}
+
+function decideBot(bot) {
+    bot.decideTimer = 0.25 + Math.random() * 0.1;
+
+    // 1. FLEE: current cell is dangerous
+    if (isCellDangerous(bot.gridX, bot.gridY)) {
+        const safe = findSafeCell(bot.gridX, bot.gridY);
+        if (safe && (safe.x !== bot.gridX || safe.y !== bot.gridY)) {
+            const step = bfsNextStep(bot.gridX, bot.gridY, safe.x, safe.y, false);
+            if (step) {
+                const nx = bot.gridX + step.dx;
+                const ny = bot.gridY + step.dy;
+                if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+                    startBotMove(bot, nx, ny);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+
+    // 2. GOTO EXIT: all enemies dead and exit visible on grid
+    if (enemiesAlive() === 0) {
+        let exitPos = null;
+        outer: for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (grid[r][c] === T_EXIT) { exitPos = { x: c, y: r }; break outer; }
+            }
+        }
+        if (exitPos) {
+            const step = bfsNextStep(bot.gridX, bot.gridY, exitPos.x, exitPos.y, true);
+            if (step) {
+                const nx = bot.gridX + step.dx;
+                const ny = bot.gridY + step.dy;
+                if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+                    startBotMove(bot, nx, ny);
+                    return;
+                }
+            }
+        }
+    }
+
+    // 3. BOMB ADJACENT SOFT BLOCK (if cooldown allows and can flee)
+    if (bot.bombCooldown <= 0 && bot.activeBombs < bot.maxBombs && !bombAt(bot.gridX, bot.gridY)) {
+        let adjacentSoft = false;
+        for (const dir of DIRS) {
+            if (tileAt(bot.gridX + dir.dx, bot.gridY + dir.dy) === T_SOFT) {
+                adjacentSoft = true; break;
+            }
+        }
+        if (adjacentSoft) {
+            let canFlee = false;
+            for (const dir of DIRS) {
+                const nx = bot.gridX + dir.dx;
+                const ny = bot.gridY + dir.dy;
+                const t = tileAt(nx, ny);
+                if ((t === T_FLOOR || t === T_EXIT) && !bombAt(nx, ny)) { canFlee = true; break; }
+            }
+            if (canFlee) {
+                placeBotBomb(bot);
+                const safe = findSafeCell(bot.gridX, bot.gridY);
+                if (safe && (safe.x !== bot.gridX || safe.y !== bot.gridY)) {
+                    const step = bfsNextStep(bot.gridX, bot.gridY, safe.x, safe.y, false);
+                    if (step) {
+                        const nx = bot.gridX + step.dx;
+                        const ny = bot.gridY + step.dy;
+                        if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+                            startBotMove(bot, nx, ny);
+                            return;
+                        }
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    // 4. NAVIGATE TO BOMB TARGET (cell adjacent to a soft block)
+    const target = findNearestBombTarget(bot.gridX, bot.gridY);
+    if (target) {
+        if (target.x === bot.gridX && target.y === bot.gridY) {
+            // At target — place bomb if ready, then flee; else wait here
+            if (bot.bombCooldown <= 0 && bot.activeBombs < bot.maxBombs && !bombAt(bot.gridX, bot.gridY)) {
+                placeBotBomb(bot);
+                const safe = findSafeCell(bot.gridX, bot.gridY);
+                if (safe && (safe.x !== bot.gridX || safe.y !== bot.gridY)) {
+                    const step = bfsNextStep(bot.gridX, bot.gridY, safe.x, safe.y, false);
+                    if (step) {
+                        const nx = bot.gridX + step.dx;
+                        const ny = bot.gridY + step.dy;
+                        if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+                            startBotMove(bot, nx, ny);
+                            return;
+                        }
+                    }
+                }
+            }
+            return; // stay at target and wait for cooldown
+        } else {
+            const step = bfsNextStep(bot.gridX, bot.gridY, target.x, target.y, true);
+            if (step) {
+                const nx = bot.gridX + step.dx;
+                const ny = bot.gridY + step.dy;
+                if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+                    startBotMove(bot, nx, ny);
+                    return;
+                }
+            }
+        }
+    }
+
+    // 5. RANDOM WANDER
+    for (const dir of shuffle([...DIRS])) {
+        const nx = bot.gridX + dir.dx;
+        const ny = bot.gridY + dir.dy;
+        if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+            startBotMove(bot, nx, ny);
+            return;
+        }
+    }
+}
+
+function updateBot(bot, dt) {
+    if (!bot.alive) return;
+    if (bot.bombCooldown > 0) bot.bombCooldown -= dt;
+    if (bot.invincible) {
+        bot.invTimer -= dt;
+        if (bot.invTimer <= 0) bot.invincible = false;
+    }
+
+    // Walk animation
+    if (bot.moving) {
+        bot.walkTimer += dt;
+        if (bot.walkTimer > 0.12) { bot.walkTimer = 0; bot.walkFrame = (bot.walkFrame + 1) % 4; }
+    }
+
+    // Smooth movement
+    if (bot.moving) {
+        const dx   = bot.targetX - bot.x;
+        const dy   = bot.targetY - bot.y;
+        const dist = Math.abs(dx) + Math.abs(dy);
+        const step = bot.speed * dt;
+        if (step >= dist) {
+            bot.x = bot.targetX; bot.y = bot.targetY;
+            bot.gridX = bot.targetX; bot.gridY = bot.targetY;
+            bot.moving = false;
+            // Pick up power-up on arrival
+            const idx = powerups.findIndex(p => p.x === bot.gridX && p.y === bot.gridY);
+            if (idx !== -1) {
+                const pu = powerups.splice(idx, 1)[0];
+                if (pu.type === PU_BOMBUP)  bot.maxBombs  = Math.min(bot.maxBombs  + 1, 8);
+                if (pu.type === PU_FIREUP)  bot.fireRange = Math.min(bot.fireRange + 1, 8);
+                if (pu.type === PU_SPEEDUP) bot.speed     = Math.min(bot.speed + 0.8, 7.0);
+            }
+            // Bot win check
+            if (!levelTransitioning && enemiesAlive() === 0 &&
+                tileAt(bot.gridX, bot.gridY) === T_EXIT) {
+                botWon();
+                return;
+            }
+        } else {
+            const frac = step / dist;
+            bot.x += dx * frac;
+            bot.y += dy * frac;
+        }
+        return;
+    }
+
+    // AI decision
+    bot.decideTimer -= dt;
+    if (bot.decideTimer <= 0) decideBot(bot);
+}
+
 // ─── MAIN UPDATE LOOP ────────────────────────────────────────
 function update(dt) {
     if (toast.timer > 0) toast.timer -= dt;
@@ -953,10 +1324,32 @@ function update(dt) {
         if (enemy.alive) updateEnemy(enemy, dt);
     }
 
-    // 8. Player damage check (explosion or enemy touch)
+    // 7.5. Update bots
+    for (const bot of aiBots) updateBot(bot, dt);
+    if (gameState !== S_PLAYING) return;
+
+    // Kill bots in explosions
+    for (const exp of explosions) {
+        if (exp.timer <= 0) continue;
+        for (const bot of aiBots) {
+            if (!bot.alive || bot.invincible) continue;
+            if (exp.cells.some(c => c.x === bot.gridX && c.y === bot.gridY)) {
+                bot.alive = false;
+                score += 200;
+                playSound('enemy_die');
+            }
+        }
+    }
+
+    // 8. Player damage check (explosion, bot, or enemy touch)
     if (!player.invincible) {
         if (explosionAt(player.gridX, player.gridY)) {
             damagePlayer(); return;
+        }
+        for (const bot of aiBots) {
+            if (bot.alive && bot.gridX === player.gridX && bot.gridY === player.gridY) {
+                damagePlayer(); return;
+            }
         }
         for (const enemy of enemies) {
             if (enemy.alive && enemy.x === player.gridX && enemy.y === player.gridY) {
@@ -1229,6 +1622,61 @@ function drawPlayer(px, py, s, now) {
     // Legs with walk animation
     const leg = Math.sin(player.walkFrame * Math.PI / 2) * r * 0.22;
     ctx.fillStyle = '#1133aa';
+    ctx.fillRect(-r * 0.54, r * 0.72,  r * 0.44, r * 0.52 + leg);
+    ctx.fillRect( r * 0.10, r * 0.72,  r * 0.44, r * 0.52 - leg);
+
+    ctx.restore();
+}
+
+function drawBot(bot, s, now) {
+    const cx = bot.x * CELL + s / 2;
+    const cy = bot.y * CELL + HUD_H + s / 2;
+    const r  = s * 0.36;
+
+    if (bot.invincible && Math.floor(now / 90) % 2 === 0) return;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(1, r * 0.88, r * 0.72, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = BOT_BODY_COLORS[bot.colorIdx];
+    ctx.fillRect(-r * 0.62, -r * 0.05, r * 1.24, r * 1.1);
+
+    // Head
+    ctx.fillStyle = BOT_COLORS[bot.colorIdx];
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.28, r * 0.68, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Helmet (darker top half)
+    ctx.fillStyle = BOT_BODY_COLORS[bot.colorIdx];
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.46, r * 0.6, Math.PI, 0);
+    ctx.fill();
+
+    // Eyes (always visible for bots)
+    const ex = bot.facingDir === 'left' ? -r * 0.18 :
+               bot.facingDir === 'right' ?  r * 0.18 : 0;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ex - r * 0.2, -r * 0.22, r * 0.14, 0, Math.PI * 2);
+    ctx.arc(ex + r * 0.2, -r * 0.22, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(ex - r * 0.2, -r * 0.22, r * 0.08, 0, Math.PI * 2);
+    ctx.arc(ex + r * 0.2, -r * 0.22, r * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs
+    const leg = bot.moving ? Math.sin(bot.walkFrame * Math.PI / 2) * r * 0.22 : 0;
+    ctx.fillStyle = BOT_BODY_COLORS[bot.colorIdx];
     ctx.fillRect(-r * 0.54, r * 0.72,  r * 0.44, r * 0.52 + leg);
     ctx.fillRect( r * 0.10, r * 0.72,  r * 0.44, r * 0.52 - leg);
 
@@ -1532,6 +1980,11 @@ function draw(now) {
         if (enemy.alive) drawEnemy(enemy, CELL, now);
     }
 
+    // Bots
+    for (const bot of aiBots) {
+        if (bot.alive) drawBot(bot, CELL, now);
+    }
+
     // Player
     drawPlayer(player.x, player.y, CELL, now);
 
@@ -1539,17 +1992,66 @@ function draw(now) {
     drawToast();
 
     // State overlays
-    if (gameState === S_MENU) {
-        drawOverlay([
-            '💣 BOMBERMAN',
-            'Destroy enemies!',
-            'Find the exit ★ to advance',
-            '',
-            'Arrow keys / WASD  – Move',
-            'Space  – Place bomb',
-            '',
-            '▶ Press SPACE or tap to start',
-        ], '#ffcc00');
+    if (gameState === S_START) {
+        ctx.fillStyle = 'rgba(0,0,0,0.78)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const ocx = canvas.width  / 2;
+        const ocy = canvas.height / 2;
+        const lh  = CELL * 0.72;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Title
+        ctx.font      = `bold ${CELL * 1.0}px 'Courier New', monospace`;
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillText('💣 BOMBERMAN', ocx, ocy - lh * 3.5);
+
+        // Subtitle
+        ctx.font      = `${CELL * 0.42}px 'Courier New', monospace`;
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText('Destroy enemies · Find the exit ★ to advance', ocx, ocy - lh * 2.55);
+
+        // AI Opponents label
+        ctx.font      = `bold ${CELL * 0.5}px 'Courier New', monospace`;
+        ctx.fillStyle = '#dddddd';
+        ctx.fillText('AI OPPONENTS', ocx, ocy - lh * 1.45);
+
+        // Bot count selector buttons
+        const btnW = CELL * 1.35;
+        const btnH = CELL * 0.75;
+        const gap  = CELL * 0.4;
+        const totalBtnW = 4 * btnW + 3 * gap;
+        const bx0 = ocx - totalBtnW / 2;
+        const by  = ocy - lh * 0.45;
+
+        for (let i = 0; i <= 3; i++) {
+            const bx  = bx0 + i * (btnW + gap);
+            const sel = i === selectedBots;
+            ctx.fillStyle   = sel ? '#ffcc00' : 'rgba(255,255,255,0.12)';
+            ctx.strokeStyle = sel ? '#ff8800' : '#555555';
+            ctx.lineWidth   = sel ? 2 : 1;
+            ctx.beginPath();
+            ctx.rect(bx, by - btnH / 2, btnW, btnH);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font      = `bold ${CELL * 0.52}px 'Courier New', monospace`;
+            ctx.fillStyle = sel ? '#000000' : '#cccccc';
+            ctx.fillText(`${i}`, bx + btnW / 2, by);
+        }
+
+        // Controls reminder
+        ctx.font      = `${CELL * 0.42}px 'Courier New', monospace`;
+        ctx.fillStyle = '#888888';
+        ctx.fillText('◄ ► or A / D  –  select opponent count', ocx, ocy + lh * 0.65);
+        ctx.fillStyle = '#aaaaaa';
+        ctx.fillText('Arrow keys / WASD  –  Move      Space  –  Place bomb', ocx, ocy + lh * 1.55);
+
+        ctx.font      = `bold ${CELL * 0.52}px 'Courier New', monospace`;
+        ctx.fillStyle = '#44ff88';
+        ctx.fillText('▶  SPACE / ENTER to start', ocx, ocy + lh * 2.65);
+
     } else if (gameState === S_GAMEOVER) {
         drawOverlay([
             'GAME OVER',
@@ -1573,6 +2075,14 @@ function draw(now) {
             '',
             'Loading next level...',
         ], '#44ffff');
+    } else if (gameState === S_BOT_WON) {
+        drawOverlay([
+            'CPU WON!',
+            'An AI Bomberman reached the exit first',
+            `Lives remaining: ${player.lives}`,
+            '',
+            'Regenerating level...',
+        ], '#ff8800');
     }
 }
 
@@ -1601,7 +2111,7 @@ function init() {
     // Generate a dummy grid for the menu screen background
     generateLevel(1);
     updateLegendDOM();
-    gameState = S_MENU;
+    gameState = S_START;
 
     requestAnimationFrame(ts => {
         lastTime = ts;
