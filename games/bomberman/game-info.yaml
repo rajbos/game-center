@@ -1,0 +1,14 @@
+# Game Information and PR Tracking
+game:
+  id: bomberman
+  name: "Bomberman"
+  description: "Classic Bomberman! Place bombs, destroy blocks, defeat enemies, and find the exit."
+
+# Pull Requests that modified this game (newest first)
+pull_requests: []
+
+# Statistics
+stats:
+  total_prs: 0
+  first_pr_date: null
+  last_pr_date: null

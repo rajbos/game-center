@@ -24,6 +24,16 @@
       ]
     },
     {
+      "id": "bomberman",
+      "name": "Bomberman",
+      "description": "Classic Bomberman! Place bombs, destroy blocks, defeat enemies, and find the exit. Keyboard and mobile touch controls.",
+      "status": "In Development",
+      "path": "./games/bomberman",
+      "createdWith": "GitHub Copilot",
+      "model": "Claude Sonnet 4.6",
+      "prLinks": []
+    },
+    {
       "id": "game-3",
       "name": "Head Ball",
       "description": "A one-on-one soccer game with Lamborghini cars! Score goals, unlock power-ups, and enjoy confetti celebrations.",

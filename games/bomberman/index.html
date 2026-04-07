@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bomberman</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #000000 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        #top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 680px;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+
+        h1 {
+            font-size: clamp(1.1rem, 4vw, 1.8rem);
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            text-shadow: 0 0 10px #ff8800, 0 0 20px #ff8800;
+            color: #ffcc00;
+            flex: 1;
+            text-align: center;
+        }
+
+        #back-btn {
+            color: #ffcc00;
+            text-decoration: none;
+            border: 1px solid #ff8800;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-family: 'Courier New', monospace;
+            background: rgba(255,136,0,0.1);
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        #back-btn:hover { background: rgba(255,136,0,0.35); }
+
+        #mute-btn {
+            background: rgba(255,136,0,0.1);
+            border: 1px solid #ff8800;
+            border-radius: 4px;
+            color: #ffcc00;
+            padding: 5px 9px;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            transition: background 0.15s;
+        }
+        #mute-btn:hover { background: rgba(255,136,0,0.35); }
+
+        #game-wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        #canvas-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Legend panel */
+        #legend {
+            background: rgba(0, 0, 20, 0.88);
+            border: 2px solid #ff8800;
+            border-radius: 6px;
+            padding: 10px 12px;
+            min-width: 155px;
+            max-width: 175px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: #ccc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .legend-title {
+            color: #ff8800;
+            font-size: 0.7rem;
+            font-weight: bold;
+            letter-spacing: 0.05rem;
+            border-bottom: 1px solid #ff880055;
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+        }
+
+        .pu-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 7px;
+            margin-bottom: 6px;
+        }
+        .pu-row:last-child { margin-bottom: 0; }
+
+        .pu-icon { font-size: 1.2rem; line-height: 1.3; flex-shrink: 0; }
+
+        .pu-name {
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 0.75rem;
+        }
+        .pu-desc { color: #aaa; font-size: 0.68rem; margin-top: 1px; }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px solid #ffffff11;
+        }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { display: flex; align-items: center; gap: 5px; }
+        .stat-val {
+            color: #44ffcc;
+            font-weight: bold;
+            font-size: 0.78rem;
+        }
+        .stat-val.maxed { color: #ff8800; }
+
+        /* Stack legend below canvas on narrow screens */
+        @media (max-width: 820px) {
+            #game-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+            #legend {
+                flex-direction: row;
+                flex-wrap: wrap;
+                min-width: 0;
+                max-width: 100%;
+                width: 100%;
+                gap: 8px;
+            }
+            .legend-section { min-width: 140px; flex: 1; }
+        }
+
+        canvas {
+            display: block;
+            border: 3px solid #ff8800;
+            border-radius: 4px;
+            box-shadow: 0 0 20px #ff8800, 0 0 40px rgba(255,136,0,0.3);
+            max-width: 100%;
+        }
+
+        /* Mobile controls */
+        #mobile-controls {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            width: 100%;
+            max-width: 400px;
+            padding: 4px 8px;
+        }
+
+        @media (max-width: 700px), (pointer: coarse) {
+            #mobile-controls { display: flex; }
+        }
+
+        #dpad {
+            display: grid;
+            grid-template-areas:
+                ". up ."
+                "left . right"
+                ". down .";
+            grid-template-columns: 52px 52px 52px;
+            grid-template-rows: 52px 52px 52px;
+            gap: 2px;
+        }
+
+        .dpad-btn {
+            background: rgba(255,136,0,0.25);
+            border: 2px solid #ff8800;
+            border-radius: 8px;
+            color: #ffcc00;
+            font-size: 1.4rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.1s;
+        }
+        .dpad-btn:active, .dpad-btn.pressed {
+            background: rgba(255,136,0,0.6);
+        }
+
+        #btn-up    { grid-area: up; }
+        #btn-left  { grid-area: left; }
+        #btn-right { grid-area: right; }
+        #btn-down  { grid-area: down; }
+
+        #btn-bomb {
+            background: rgba(220,0,0,0.3);
+            border: 3px solid #ff4444;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 2rem;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 0 12px rgba(255,50,50,0.5);
+            transition: background 0.1s;
+        }
+        #btn-bomb:active, #btn-bomb.pressed {
+            background: rgba(220,0,0,0.7);
+        }
+
+        #info-bar {
+            font-size: 0.75rem;
+            color: #888;
+            text-align: center;
+            max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <a href="../../index.html" id="back-btn">← Game Center</a>
+        <h1>💣 Bomberman</h1>
+        <button id="mute-btn" title="Toggle sound">🔊</button>
+    </div>
+    <div id="game-wrapper">
+        <div id="canvas-area">
+            <canvas id="gameCanvas"></canvas>
+            <div id="mobile-controls">
+                <div id="dpad">
+                    <button class="dpad-btn" id="btn-up">▲</button>
+                    <button class="dpad-btn" id="btn-left">◀</button>
+                    <button class="dpad-btn" id="btn-right">▶</button>
+                    <button class="dpad-btn" id="btn-down">▼</button>
+                </div>
+                <button id="btn-bomb">💣</button>
+            </div>
+            <div id="info-bar">Arrow keys / WASD + Space &nbsp;|&nbsp; Mobile: D-pad + 💣</div>
+        </div>
+
+        <div id="legend">
+            <!-- Power-Up descriptions -->
+            <div class="legend-section">
+                <div class="legend-title">⬆ POWER-UPS</div>
+                <div class="pu-row">
+                    <span class="pu-icon">💣</span>
+                    <div>
+                        <div class="pu-name">Bomb Up</div>
+                        <div class="pu-desc">Place one extra bomb at the same time (max 8)</div>
+                    </div>
+                </div>
+                <div class="pu-row">
+                    <span class="pu-icon">🔥</span>
+                    <div>
+                        <div class="pu-name">Fire Up</div>
+                        <div class="pu-desc">Blast travels 1 extra tile in each direction (max 8)</div>
+                    </div>
+                </div>
+                <div class="pu-row">
+                    <span class="pu-icon">⚡</span>
+                    <div>
+                        <div class="pu-name">Speed Up</div>
+                        <div class="pu-desc">Move faster across the grid (max 4 upgrades)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live player stats -->
+            <div class="legend-section">
+                <div class="legend-title">📊 YOUR STATS</div>
+                <div class="stat-row">
+                    <span class="stat-label"><span>💣</span> Bombs</span>
+                    <span class="stat-val" id="stat-bombs">1</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label"><span>🔥</span> Range</span>
+                    <span class="stat-val" id="stat-fire">1</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label"><span>⚡</span> Speed</span>
+                    <span class="stat-val" id="stat-speed">1</span>
+                </div>
+            </div>
+
+            <!-- Map legend -->
+            <div class="legend-section">
+                <div class="legend-title">🗺 MAP KEY</div>
+                <div class="pu-row">
+                    <span class="pu-icon">★</span>
+                    <div>
+                        <div class="pu-name">Exit Door</div>
+                        <div class="pu-desc">Hidden under a soft block. Step on it after defeating all enemies!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+'use strict';
+
+// ─── SOUND ENGINE (Web Audio API) ────────────────────────────
+let audioCtx = null;
+let muted = false;
+
+function getAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function osc(ctx, type, freq, t, dur, vol, freqEnd) {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (freqEnd !== undefined) o.frequency.exponentialRampToValueAtTime(freqEnd, t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.start(t); o.stop(t + dur);
+}
+
+function noise(ctx, t, dur, vol, filterFreq, filterType = 'bandpass') {
+    const len = Math.ceil(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d   = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src  = ctx.createBufferSource();
+    src.buffer = buf;
+    const flt  = ctx.createBiquadFilter();
+    flt.type = filterType; flt.frequency.value = filterFreq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(flt); flt.connect(g); g.connect(ctx.destination);
+    src.start(t); src.stop(t + dur);
+}
+
+function playSound(type) {
+    if (muted) return;
+    try {
+        const ctx = getAudio();
+        const t   = ctx.currentTime;
+        switch (type) {
+            case 'bomb_place':
+                // Short low thud
+                osc(ctx, 'square', 200, t, 0.12, 0.25, 70);
+                break;
+            case 'explosion':
+                // Noise burst + deep boom
+                noise(ctx, t, 0.5, 0.45, 350);
+                osc(ctx, 'sine', 90, t, 0.4, 0.5, 40);
+                break;
+            case 'chain':
+                // Slightly higher chain boom
+                noise(ctx, t, 0.35, 0.35, 500);
+                osc(ctx, 'sine', 120, t, 0.3, 0.35, 50);
+                break;
+            case 'powerup':
+                // Ascending chime
+                [523, 659, 784, 1047].forEach((f, i) =>
+                    osc(ctx, 'sine', f, t + i * 0.07, 0.18, 0.3));
+                break;
+            case 'enemy_die':
+                // Pop squeak downward
+                osc(ctx, 'square', 440, t, 0.18, 0.22, 110);
+                break;
+            case 'player_die':
+                // Descending tones
+                [380, 280, 190, 110].forEach((f, i) =>
+                    osc(ctx, 'sawtooth', f, t + i * 0.1, 0.14, 0.28));
+                break;
+            case 'game_over':
+                // Slow sad descent
+                [300, 240, 180, 130].forEach((f, i) =>
+                    osc(ctx, 'sawtooth', f, t + i * 0.18, 0.2, 0.3));
+                break;
+            case 'level_win':
+                // Victory fanfare
+                [523, 659, 784, 1047, 1319].forEach((f, i) =>
+                    osc(ctx, 'triangle', f, t + i * 0.09, 0.22, 0.35));
+                break;
+            case 'game_start':
+                // Short upbeat beep
+                [330, 440, 550].forEach((f, i) =>
+                    osc(ctx, 'square', f, t + i * 0.07, 0.12, 0.22));
+                break;
+        }
+    } catch (_) { /* audio unavailable */ }
+}
+
+document.getElementById('mute-btn').addEventListener('click', () => {
+    muted = !muted;
+    document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
+    if (!muted) getAudio(); // warm up context
+});
+
+// ─── CONSTANTS ───────────────────────────────────────────────
+const COLS = 15, ROWS = 13;
+const HUD_H = 48;
+const MAX_LEVELS = 5;
+
+const T_FLOOR = 0, T_HARD = 1, T_SOFT = 2, T_EXIT = 3;
+const PU_BOMBUP = 'bombup', PU_FIREUP = 'fireup', PU_SPEEDUP = 'speedup';
+const S_MENU = 'MENU', S_PLAYING = 'PLAYING', S_LEVEL_WIN = 'LEVEL_WIN',
+      S_GAMEOVER = 'GAMEOVER', S_WIN = 'WIN';
+
+const DIRS = [
+    { dx: 0, dy: -1, name: 'up' },
+    { dx: 0, dy:  1, name: 'down' },
+    { dx: -1, dy: 0, name: 'left' },
+    { dx:  1, dy: 0, name: 'right' },
+];
+
+// ─── CANVAS SETUP ────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+let CELL = 40;
+
+function computeLayout() {
+    const maxW = Math.min(window.innerWidth - 16, 680);
+    const mobileControls = (window.innerWidth <= 700 || 'ontouchstart' in window) ? 180 : 0;
+    const maxH = window.innerHeight - 120 - mobileControls;
+    const byW  = Math.floor(maxW / COLS);
+    const byH  = Math.floor((maxH - HUD_H) / ROWS);
+    CELL = Math.max(20, Math.min(byW, byH, 44));
+    canvas.width  = COLS * CELL;
+    canvas.height = ROWS * CELL + HUD_H;
+}
+
+// ─── GAME STATE ──────────────────────────────────────────────
+let gameState = S_MENU;
+let level = 1, score = 0;
+let grid = [];           // grid[row][col] = T_*
+let hiddenItems = {};    // "col,row" → { exit, powerup }
+let powerups  = [];      // [{ x, y, type }]
+let bombs     = [];      // [{ x, y, timer, range, state, counted }]
+let explosions = [];     // [{ cells:[{x,y,type}], timer }]
+let enemies   = [];      // [{ x, y, type, alive, moveTimer }]
+let levelTransitioning = false;
+
+const player = {
+    x: 1, y: 1,             // float grid coords (render position)
+    gridX: 1, gridY: 1,     // current logical tile
+    targetX: 1, targetY: 1, // destination tile
+    moving: false,
+    facingDir: 'down',
+    walkFrame: 0, walkTimer: 0,
+    maxBombs: 1, activeBombs: 0,
+    fireRange: 1, speed: 4.5,  // tiles/second
+    lives: 3, score: 0,
+    invincible: false, invTimer: 0,
+};
+
+// ─── UTILITIES ───────────────────────────────────────────────
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function tileAt(col, row) {
+    if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return T_HARD;
+    return grid[row][col];
+}
+
+function isSolid(col, row) {
+    const t = tileAt(col, row);
+    return t === T_HARD || t === T_SOFT;
+}
+
+function bombAt(col, row) {
+    return bombs.find(b => b.x === col && b.y === row && b.state === 'armed');
+}
+
+function explosionAt(col, row) {
+    return explosions.some(exp => exp.cells.some(c => c.x === col && c.y === row));
+}
+
+function enemiesAlive() {
+    return enemies.filter(e => e.alive).length;
+}
+
+// ─── LEVEL GENERATION ────────────────────────────────────────
+function generateLevel(lvl) {
+    grid = [];
+    hiddenItems = {};
+    powerups  = [];
+    bombs     = [];
+    explosions = [];
+    levelTransitioning = false;
+
+    // Build base grid
+    for (let r = 0; r < ROWS; r++) {
+        grid[r] = [];
+        for (let c = 0; c < COLS; c++) {
+            const isBorder  = r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1;
+            const isPillar  = r % 2 === 0 && c % 2 === 0;
+            grid[r][c] = (isBorder || isPillar) ? T_HARD : T_FLOOR;
+        }
+    }
+
+    // Safe zone around player start (1,1) — col,row format
+    const safeZone = new Set(['1,1', '2,1', '1,2', '3,1', '1,3']);
+
+    // Collect softable floor cells
+    const floorCells = [];
+    for (let r = 1; r < ROWS - 1; r++) {
+        for (let c = 1; c < COLS - 1; c++) {
+            if (grid[r][c] === T_FLOOR && !safeZone.has(`${c},${r}`)) {
+                floorCells.push({ x: c, y: r });
+            }
+        }
+    }
+    shuffle(floorCells);
+
+    // Place soft blocks (~55%)
+    const softCount = Math.floor(floorCells.length * 0.55);
+    const softCells = floorCells.slice(0, softCount);
+    softCells.forEach(({ x, y }) => { grid[y][x] = T_SOFT; });
+
+    // Hide exit under one random soft block
+    const exitCell = softCells[Math.floor(Math.random() * softCells.length)];
+    hiddenItems[`${exitCell.x},${exitCell.y}`] = { exit: true, powerup: null };
+
+    // Hide power-ups under other soft blocks
+    const puPool = softCells.filter(c => `${c.x},${c.y}` !== `${exitCell.x},${exitCell.y}`);
+    shuffle(puPool);
+    const puTypes = [PU_BOMBUP, PU_FIREUP, PU_SPEEDUP];
+    const puCount = Math.min(3 + lvl, puPool.length, 9);
+    for (let i = 0; i < puCount; i++) {
+        hiddenItems[`${puPool[i].x},${puPool[i].y}`] = { exit: false, powerup: puTypes[i % 3] };
+    }
+
+    // Place enemies far from player
+    const minDist = 5;
+    const enemyPool = floorCells.filter(c =>
+        Math.sqrt((c.x - 1) ** 2 + (c.y - 1) ** 2) >= minDist
+    );
+    shuffle(enemyPool);
+    const enemyCount = Math.min(lvl + 2, 8, enemyPool.length);
+    enemies = [];
+    for (let i = 0; i < enemyCount; i++) {
+        enemies.push({
+            x: enemyPool[i].x,
+            y: enemyPool[i].y,
+            type: i % 2 === 0 ? 'ballom' : 'oneal',
+            alive: true,
+            moveTimer: 0.3 + Math.random() * 0.5,
+        });
+    }
+
+    // Reset player position (keep upgrades between levels, reset bombs)
+    player.x = 1; player.y = 1;
+    player.gridX = 1; player.gridY = 1;
+    player.targetX = 1; player.targetY = 1;
+    player.moving = false;
+    player.activeBombs = 0;
+}
+
+function startNewGame() {
+    playSound('game_start');
+    level = 1;
+    score = 0;
+    player.maxBombs  = 1;
+    player.fireRange = 1;
+    player.speed     = 4.5;
+    player.lives     = 3;
+    player.invincible = false;
+    player.invTimer   = 0;
+    generateLevel(1);
+    updateLegendDOM();
+    gameState = S_PLAYING;
+}
+
+// ─── INPUT ───────────────────────────────────────────────────
+const keys = {};
+let bombPressed = false;
+
+document.addEventListener('keydown', e => {
+    keys[e.key] = true;
+    if (audioCtx) audioCtx.resume(); // unblock autoplay policy
+    if (e.key === ' ') { e.preventDefault(); bombPressed = true; }
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+
+    if (gameState === S_MENU || gameState === S_GAMEOVER || gameState === S_WIN) {
+        if (e.key === ' ' || e.key === 'Enter') startNewGame();
+    }
+});
+
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+function getDirectionInput() {
+    if (keys['ArrowUp']    || keys['w'] || keys['W']) return DIRS[0];
+    if (keys['ArrowDown']  || keys['s'] || keys['S']) return DIRS[1];
+    if (keys['ArrowLeft']  || keys['a'] || keys['A']) return DIRS[2];
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) return DIRS[3];
+    return null;
+}
+
+function setupMobileControls() {
+    function holdKey(keyName, el) {
+        const press = e => { e.preventDefault(); keys[keyName] = true; el.classList.add('pressed'); };
+        const release = e => { e.preventDefault(); keys[keyName] = false; el.classList.remove('pressed'); };
+        el.addEventListener('touchstart',  press,   { passive: false });
+        el.addEventListener('touchend',    release, { passive: false });
+        el.addEventListener('touchcancel', release, { passive: false });
+        el.addEventListener('mousedown',   press);
+        el.addEventListener('mouseup',     release);
+        el.addEventListener('mouseleave',  release);
+    }
+
+    holdKey('ArrowUp',    document.getElementById('btn-up'));
+    holdKey('ArrowDown',  document.getElementById('btn-down'));
+    holdKey('ArrowLeft',  document.getElementById('btn-left'));
+    holdKey('ArrowRight', document.getElementById('btn-right'));
+
+    const btnBomb = document.getElementById('btn-bomb');
+    const triggerBombPress = e => {
+        e.preventDefault();
+        bombPressed = true;
+        btnBomb.classList.add('pressed');
+    };
+    const releaseBombBtn = e => { e.preventDefault(); btnBomb.classList.remove('pressed'); };
+    btnBomb.addEventListener('touchstart',  triggerBombPress, { passive: false });
+    btnBomb.addEventListener('touchend',    releaseBombBtn,   { passive: false });
+    btnBomb.addEventListener('touchcancel', releaseBombBtn,   { passive: false });
+    btnBomb.addEventListener('mousedown',   triggerBombPress);
+    btnBomb.addEventListener('mouseup',     releaseBombBtn);
+
+    canvas.addEventListener('touchstart', () => {
+        if (gameState !== S_PLAYING && gameState !== S_LEVEL_WIN) startNewGame();
+    });
+}
+
+// ─── BOMB & EXPLOSION LOGIC ──────────────────────────────────
+function placeBomb() {
+    const { gridX: x, gridY: y } = player;
+    if (player.activeBombs >= player.maxBombs) return;
+    if (bombAt(x, y)) return;
+
+    bombs.push({ x, y, timer: 3.0, range: player.fireRange, state: 'armed', counted: true });
+    player.activeBombs++;
+    playSound('bomb_place');
+}
+
+function triggerBomb(bomb) {
+    if (bomb.state !== 'armed') return;
+    bomb.state = 'exploding';
+    playSound('explosion');
+
+    if (bomb.counted) {
+        bomb.counted = false;
+        player.activeBombs = Math.max(0, player.activeBombs - 1);
+    }
+
+    const cells = [{ x: bomb.x, y: bomb.y, type: 'center' }];
+    const newPowerups = []; // revealed by THIS explosion — immune to its own filter
+
+    for (const dir of DIRS) {
+        for (let i = 1; i <= bomb.range; i++) {
+            const nx = bomb.x + dir.dx * i;
+            const ny = bomb.y + dir.dy * i;
+            const tile = tileAt(nx, ny);
+
+            if (tile === T_HARD) break;
+
+            const isEnd  = i === bomb.range || tile === T_SOFT;
+            const armType = isEnd ? 'end' : (dir.dx !== 0 ? 'h' : 'v');
+            cells.push({ x: nx, y: ny, type: armType });
+
+            if (tile === T_SOFT) {
+                grid[ny][nx] = T_FLOOR;
+                const key = `${nx},${ny}`;
+                if (hiddenItems[key]) {
+                    const item = hiddenItems[key];
+                    delete hiddenItems[key];
+                    if (item.exit) {
+                        grid[ny][nx] = T_EXIT;
+                    } else if (item.powerup) {
+                        newPowerups.push({ x: nx, y: ny, type: item.powerup });
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Destroy pre-existing power-ups caught in the blast (but NOT the ones just revealed)
+    powerups = powerups.filter(pu => !cells.some(c => c.x === pu.x && c.y === pu.y));
+    // Now add newly revealed power-ups — safe from this explosion
+    powerups.push(...newPowerups);
+
+    explosions.push({ cells, timer: 0.7 });
+
+    // Chain reaction: immediately trigger any armed bombs in the blast
+    for (const cell of cells) {
+        for (const other of bombs) {
+            if (other !== bomb && other.state === 'armed' &&
+                other.x === cell.x && other.y === cell.y) {
+                triggerBomb(other);
+                playSound('chain');
+            }
+        }
+    }
+}
+
+// ─── DAMAGE & RESPAWN ────────────────────────────────────────
+function damagePlayer() {
+    if (player.invincible) return;
+    player.lives--;
+
+    if (player.lives <= 0) {
+        playSound('game_over');
+        gameState = S_GAMEOVER;
+        return;
+    }
+    playSound('player_die');
+
+    // Mark all counted bombs uncounted so they don't double-decrement
+    bombs.forEach(b => { b.counted = false; });
+    player.activeBombs = 0;
+
+    player.x = 1; player.y = 1;
+    player.gridX = 1; player.gridY = 1;
+    player.targetX = 1; player.targetY = 1;
+    player.moving = false;
+    player.invincible = true;
+    player.invTimer = 2.5;
+}
+
+// ─── ENEMY AI ────────────────────────────────────────────────
+function canEnemyMoveTo(col, row) {
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+    const t = tileAt(col, row);
+    if (t === T_HARD || t === T_SOFT) return false;
+    if (bombAt(col, row)) return false;
+    return true;
+}
+
+function updateEnemy(enemy, dt) {
+    enemy.moveTimer -= dt;
+    if (enemy.moveTimer > 0) return;
+
+    const moveInterval = enemy.type === 'oneal' ? 0.55 : 0.85;
+    enemy.moveTimer = moveInterval + Math.random() * 0.1;
+
+    const shuffledDirs = shuffle([...DIRS]);
+
+    // Oneal: 65% chance try to move toward player
+    if (enemy.type === 'oneal' && Math.random() < 0.65) {
+        const dx = player.gridX - enemy.x;
+        const dy = player.gridY - enemy.y;
+
+        // Order preferred dirs by axis with largest distance first
+        const preferred = [];
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            if (dx !== 0) preferred.push(DIRS.find(d => d.dx === Math.sign(dx) && d.dy === 0));
+            if (dy !== 0) preferred.push(DIRS.find(d => d.dy === Math.sign(dy) && d.dx === 0));
+        } else {
+            if (dy !== 0) preferred.push(DIRS.find(d => d.dy === Math.sign(dy) && d.dx === 0));
+            if (dx !== 0) preferred.push(DIRS.find(d => d.dx === Math.sign(dx) && d.dy === 0));
+        }
+
+        for (const dir of preferred) {
+            if (dir && canEnemyMoveTo(enemy.x + dir.dx, enemy.y + dir.dy)) {
+                enemy.x += dir.dx;
+                enemy.y += dir.dy;
+                return;
+            }
+        }
+    }
+
+    // Fallback: random from shuffled unique directions
+    for (const dir of shuffledDirs) {
+        if (canEnemyMoveTo(enemy.x + dir.dx, enemy.y + dir.dy)) {
+            enemy.x += dir.dx;
+            enemy.y += dir.dy;
+            return;
+        }
+    }
+}
+
+// ─── PLAYER UPDATE ───────────────────────────────────────────
+function updatePlayer(dt) {
+    // Walk animation
+    if (player.moving) {
+        player.walkTimer += dt;
+        if (player.walkTimer > 0.12) {
+            player.walkTimer = 0;
+            player.walkFrame = (player.walkFrame + 1) % 4;
+        }
+    }
+
+    if (player.moving) {
+        const dx   = player.targetX - player.x;
+        const dy   = player.targetY - player.y;
+        const dist = Math.abs(dx) + Math.abs(dy);
+        const step = player.speed * dt;
+
+        if (step >= dist) {
+            player.x     = player.targetX;
+            player.y     = player.targetY;
+            player.gridX = player.targetX;
+            player.gridY = player.targetY;
+            player.moving = false;
+
+            // Pick up power-up on arrival
+            const idx = powerups.findIndex(p => p.x === player.gridX && p.y === player.gridY);
+            if (idx !== -1) {
+                applyPowerup(powerups.splice(idx, 1)[0].type);
+            }
+
+            // Exit hint when enemies still alive
+            if (tileAt(player.gridX, player.gridY) === T_EXIT) {
+                const n = enemiesAlive();
+                if (n > 0) showToast(`Defeat ${n} more ${n === 1 ? 'enemy' : 'enemies'} first!`, 2.5, '#ff8866');
+            }
+        } else {
+            const frac = step / dist;
+            player.x += dx * frac;
+            player.y += dy * frac;
+        }
+        return; // Don't process new input while still moving
+    }
+
+    // Process bomb input
+    if (bombPressed) {
+        bombPressed = false;
+        placeBomb();
+    }
+
+    // Process movement input
+    const dir = getDirectionInput();
+    if (dir) {
+        if (dir.dx < 0) player.facingDir = 'left';
+        else if (dir.dx > 0) player.facingDir = 'right';
+        else if (dir.dy < 0) player.facingDir = 'up';
+        else player.facingDir = 'down';
+
+        const nx = player.gridX + dir.dx;
+        const ny = player.gridY + dir.dy;
+
+        // Bombs block movement TO their tile (but not FROM)
+        if (!isSolid(nx, ny) && !bombAt(nx, ny)) {
+            player.targetX = nx;
+            player.targetY = ny;
+            player.moving  = true;
+            player.walkTimer = 0;
+        }
+    }
+}
+
+function applyPowerup(type) {
+    score += 50;
+    playSound('powerup');
+    if (type === PU_BOMBUP)  player.maxBombs  = Math.min(player.maxBombs  + 1, 8);
+    if (type === PU_FIREUP)  player.fireRange = Math.min(player.fireRange + 1, 8);
+    if (type === PU_SPEEDUP) player.speed     = Math.min(player.speed + 0.8, 7.0);
+    updateLegendDOM();
+}
+
+function updateLegendDOM() {
+    const speedLevel = Math.round((player.speed - 4.5) / 0.8) + 1; // 1–4 displayed
+
+    const elBombs = document.getElementById('stat-bombs');
+    const elFire  = document.getElementById('stat-fire');
+    const elSpeed = document.getElementById('stat-speed');
+
+    elBombs.textContent = `×${player.maxBombs}`;
+    elFire.textContent  = `${player.fireRange} tile${player.fireRange > 1 ? 's' : ''}`;
+    elSpeed.textContent = `Lv ${speedLevel}`;
+
+    elBombs.className = 'stat-val' + (player.maxBombs  >= 8 ? ' maxed' : '');
+    elFire.className  = 'stat-val' + (player.fireRange >= 8 ? ' maxed' : '');
+    elSpeed.className = 'stat-val' + (player.speed     >= 7.0 ? ' maxed' : '');
+}
+
+// ─── MAIN UPDATE LOOP ────────────────────────────────────────
+function update(dt) {
+    if (toast.timer > 0) toast.timer -= dt;
+    if (gameState !== S_PLAYING) return;
+
+    // 1. Player movement
+    updatePlayer(dt);
+
+    // 2. Bomb timers
+    for (const bomb of bombs) {
+        if (bomb.state === 'armed') {
+            bomb.timer -= dt;
+            if (bomb.timer <= 0) triggerBomb(bomb);
+        }
+    }
+
+    // 3. Remove fully-processed bombs
+    bombs = bombs.filter(b => b.state === 'armed');
+
+    // 4. Tick explosion timers
+    for (const exp of explosions) exp.timer -= dt;
+
+    // 5. Kill enemies in active explosions
+    for (const exp of explosions) {
+        if (exp.timer <= 0) continue;
+        for (const enemy of enemies) {
+            if (!enemy.alive) continue;
+            if (exp.cells.some(c => c.x === enemy.x && c.y === enemy.y)) {
+                enemy.alive = false;
+                score += 100;
+                playSound('enemy_die');
+            }
+        }
+    }
+
+    // 6. Remove expired explosions
+    explosions = explosions.filter(e => e.timer > 0);
+
+    // 7. Move enemies
+    for (const enemy of enemies) {
+        if (enemy.alive) updateEnemy(enemy, dt);
+    }
+
+    // 8. Player damage check (explosion or enemy touch)
+    if (!player.invincible) {
+        if (explosionAt(player.gridX, player.gridY)) {
+            damagePlayer(); return;
+        }
+        for (const enemy of enemies) {
+            if (enemy.alive && enemy.x === player.gridX && enemy.y === player.gridY) {
+                damagePlayer(); return;
+            }
+        }
+    }
+
+    // 9. Invincibility countdown
+    if (player.invincible) {
+        player.invTimer -= dt;
+        if (player.invTimer <= 0) player.invincible = false;
+    }
+
+    // 10. Win condition: all enemies dead + player on exit
+    if (!levelTransitioning && enemiesAlive() === 0 &&
+        tileAt(player.gridX, player.gridY) === T_EXIT) {
+
+        levelTransitioning = true;
+        score += 500 + level * 100;
+        playSound('level_win');
+        gameState = S_LEVEL_WIN;
+
+        setTimeout(() => {
+            level++;
+            if (level > MAX_LEVELS) {
+                gameState = S_WIN;
+            } else {
+                generateLevel(level);
+                gameState = S_PLAYING;
+            }
+        }, 2200);
+    }
+}
+
+// ─── SPRITE DRAWING ──────────────────────────────────────────
+function drawFloor(cx, cy, s) {
+    ctx.fillStyle = '#c8b87a';
+    ctx.fillRect(cx, cy, s, s);
+    ctx.strokeStyle = '#b8a86a';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(cx + 0.5, cy + 0.5, s - 1, s - 1);
+}
+
+function drawHardWall(cx, cy, s) {
+    ctx.fillStyle = '#3a3a44';
+    ctx.fillRect(cx, cy, s, s);
+    // Top-left highlight
+    ctx.fillStyle = '#5a5a66';
+    ctx.fillRect(cx + 1, cy + 1, s - 4, s - 4);
+    // Bottom-right shadow
+    ctx.fillStyle = '#1e1e26';
+    ctx.fillRect(cx + s - 3, cy, 3, s);
+    ctx.fillRect(cx, cy + s - 3, s, 3);
+    // Brick lines
+    const bh = s / 3;
+    ctx.fillStyle = '#3a3a44';
+    for (let i = 0; i < 3; i++) {
+        const by  = cy + i * bh + 1;
+        const off = i % 2 === 0 ? 0 : s * 0.3;
+        ctx.fillRect(cx + off,           by, s * 0.35, bh - 2);
+        ctx.fillRect(cx + off + s * 0.5, by, s * 0.35, bh - 2);
+    }
+}
+
+function drawSoftBlock(cx, cy, s) {
+    ctx.fillStyle = '#7a4020';
+    ctx.fillRect(cx, cy, s, s);
+    ctx.fillStyle = '#9a5830';
+    ctx.fillRect(cx + 2, cy + 2, s - 4, s - 4);
+    // Cross texture
+    ctx.strokeStyle = '#5a2808';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + s / 2, cy + 3);
+    ctx.lineTo(cx + s / 2, cy + s - 3);
+    ctx.moveTo(cx + 3, cy + s / 2);
+    ctx.lineTo(cx + s - 3, cy + s / 2);
+    ctx.stroke();
+    // Border
+    ctx.strokeStyle = '#4a1800';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx + 1, cy + 1, s - 2, s - 2);
+}
+
+function drawExit(cx, cy, s) {
+    drawFloor(cx, cy, s);
+    const locked = enemiesAlive() > 0;
+    const pad  = s * 0.12;
+    const dw   = s * 0.55;
+    const dh   = s * 0.65;
+    const dx   = cx + (s - dw) / 2;
+    const dy   = cy + s - dh - pad;
+    const arch = dw / 2;
+
+    // Door body — darker when locked
+    ctx.fillStyle = locked ? '#12122a' : '#0a1f5a';
+    ctx.beginPath();
+    ctx.arc(dx + arch, dy + dh - arch, arch, Math.PI, 0);
+    ctx.lineTo(dx + dw, dy + dh);
+    ctx.lineTo(dx, dy + dh);
+    ctx.closePath();
+    ctx.fill();
+
+    // Door interior
+    const ig = 3;
+    ctx.fillStyle = locked ? '#222244' : '#2255cc';
+    ctx.beginPath();
+    ctx.arc(dx + arch, dy + dh - arch, arch - ig, Math.PI, 0);
+    ctx.lineTo(dx + dw - ig, dy + dh);
+    ctx.lineTo(dx + ig, dy + dh);
+    ctx.closePath();
+    ctx.fill();
+
+    if (locked) {
+        // Padlock shape
+        const lx = cx + s * 0.38, ly = cy + s * 0.50;
+        const lw = s * 0.25, lh = s * 0.20;
+        ctx.fillStyle = '#cc4400';
+        ctx.fillRect(lx, ly, lw, lh);
+        ctx.strokeStyle = '#cc4400';
+        ctx.lineWidth = Math.max(2, s * 0.055);
+        ctx.beginPath();
+        ctx.arc(lx + lw / 2, ly, lw * 0.38, Math.PI, 0);
+        ctx.stroke();
+        // keyhole
+        ctx.fillStyle = '#12122a';
+        ctx.beginPath();
+        ctx.arc(lx + lw / 2, ly + lh * 0.38, lw * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        // Star (lit when unlocked)
+        ctx.fillStyle = '#ffffaa';
+        ctx.font = `${s * 0.3}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('★', cx + s / 2, cy + s * 0.52);
+    }
+}
+
+function drawBomb(cx, cy, s, timerFrac, now) {
+    const bx = cx + s / 2;
+    const by = cy + s * 0.58;
+    const r  = s * 0.33;
+    const scale = 1 + (1 - timerFrac) * 0.18;
+
+    ctx.save();
+    ctx.translate(bx, by);
+    ctx.scale(scale, scale);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(2, r * 0.9, r * 0.75, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.3, -r * 0.3, r * 0.28, r * 0.18, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Fuse
+    ctx.strokeStyle = '#9a7a22';
+    ctx.lineWidth = Math.max(1.5, s * 0.04);
+    ctx.beginPath();
+    ctx.moveTo(r * 0.5, -r * 0.65);
+    ctx.quadraticCurveTo(r * 0.95, -r * 1.2, r * 0.15, -r * 1.5);
+    ctx.stroke();
+
+    // Animated spark
+    if (Math.floor(now / 180) % 2 === 0) {
+        ctx.fillStyle = timerFrac < 0.33 ? '#ff3300' : '#ffcc00';
+        ctx.beginPath();
+        ctx.arc(r * 0.15, -r * 1.5, Math.max(2, s * 0.07), 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function drawExplosionCell(cell, alpha) {
+    const cx = cell.x * CELL;
+    const cy = cell.y * CELL + HUD_H;
+    const s  = CELL;
+    const p  = s * 0.08;
+
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
+    if (cell.type === 'center') {
+        const g = ctx.createRadialGradient(cx + s/2, cy + s/2, 0, cx + s/2, cy + s/2, s * 0.58);
+        g.addColorStop(0,   '#ffffff');
+        g.addColorStop(0.25,'#ffff88');
+        g.addColorStop(0.6, '#ff8800');
+        g.addColorStop(1,   'rgba(255,50,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(cx, cy, s, s);
+    } else if (cell.type === 'h') {
+        ctx.fillStyle = '#ff8800';
+        ctx.fillRect(cx, cy + p, s, s - p * 2);
+        ctx.fillStyle = '#ffdd00';
+        ctx.fillRect(cx, cy + p * 2.5, s, s - p * 5);
+    } else if (cell.type === 'v') {
+        ctx.fillStyle = '#ff8800';
+        ctx.fillRect(cx + p, cy, s - p * 2, s);
+        ctx.fillStyle = '#ffdd00';
+        ctx.fillRect(cx + p * 2.5, cy, s - p * 5, s);
+    } else { // end cap
+        const g = ctx.createRadialGradient(cx + s/2, cy + s/2, 0, cx + s/2, cy + s/2, s * 0.48);
+        g.addColorStop(0,   '#ffff88');
+        g.addColorStop(0.5, '#ff6600');
+        g.addColorStop(1,   'rgba(255,50,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(cx, cy, s, s);
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function drawPlayer(px, py, s, now) {
+    const cx = px * CELL + s / 2;
+    const cy = py * CELL + HUD_H + s / 2;
+    const r  = s * 0.36;
+
+    // Invincibility flicker
+    if (player.invincible && Math.floor(now / 90) % 2 === 0) return;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(1, r * 0.88, r * 0.72, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#1a44cc';
+    ctx.fillRect(-r * 0.62, -r * 0.05, r * 1.24, r * 1.1);
+
+    // Head
+    ctx.fillStyle = '#ffd5a0';
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.28, r * 0.68, 0, Math.PI * 2);
+    ctx.fill();
+
+    // White helmet
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, -r * 0.46, r * 0.6, Math.PI, 0);
+    ctx.fill();
+
+    // Eyes (not shown when facing up)
+    if (player.facingDir !== 'up') {
+        const ex = player.facingDir === 'left' ? -r * 0.18 :
+                   player.facingDir === 'right' ? r * 0.18 : 0;
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(ex - r * 0.2, -r * 0.22, r * 0.11, 0, Math.PI * 2);
+        ctx.arc(ex + r * 0.2, -r * 0.22, r * 0.11, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Legs with walk animation
+    const leg = Math.sin(player.walkFrame * Math.PI / 2) * r * 0.22;
+    ctx.fillStyle = '#1133aa';
+    ctx.fillRect(-r * 0.54, r * 0.72,  r * 0.44, r * 0.52 + leg);
+    ctx.fillRect( r * 0.10, r * 0.72,  r * 0.44, r * 0.52 - leg);
+
+    ctx.restore();
+}
+
+function drawEnemy(enemy, s, now) {
+    const cx = enemy.x * CELL + s / 2;
+    const cy = enemy.y * CELL + HUD_H + s / 2;
+    const r  = s * 0.38;
+
+    const isRed = enemy.type === 'ballom';
+    const base  = isRed ? '#cc2222' : '#2244aa';
+    const hi    = isRed ? '#ee5555' : '#4488cc';
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(1, r * 0.9, r * 0.72, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body blob
+    ctx.fillStyle = base;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = hi;
+    ctx.beginPath();
+    ctx.arc(-r * 0.22, -r * 0.28, r * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Feet wiggles
+    const wig = (Math.floor(now / 200) % 2) * 2;
+    ctx.fillStyle = base;
+    [-r * 0.4, 0, r * 0.4].forEach((ox, i) => {
+        ctx.beginPath();
+        ctx.arc(ox, r + (i % 2 === 0 ? wig : -wig), r * 0.23, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Eyes whites
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.28, -r * 0.12, r * 0.22, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.ellipse( r * 0.28, -r * 0.12, r * 0.22, r * 0.28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupils
+    ctx.fillStyle = '#111';
+    const px2 = isRed ? 0 : r * 0.08;
+    ctx.beginPath();
+    ctx.arc(-r * 0.28 + px2, -r * 0.08, r * 0.13, 0, Math.PI * 2);
+    ctx.arc( r * 0.28 + px2, -r * 0.08, r * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Oneal angry brows
+    if (!isRed) {
+        ctx.strokeStyle = '#111';
+        ctx.lineWidth = Math.max(1.5, s * 0.04);
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.5, -r * 0.42); ctx.lineTo(-r * 0.08, -r * 0.34);
+        ctx.moveTo( r * 0.08, -r * 0.34); ctx.lineTo( r * 0.5,  -r * 0.42);
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+function drawPowerup(pu, s, now) {
+    const cx  = pu.x * CELL;
+    const cy  = pu.y * CELL + HUD_H;
+    const p   = Math.max(2, s * 0.07);
+    const mid = s / 2;
+    const pulse = 0.55 + 0.45 * Math.sin(now / 260);
+
+    const bgColor  = pu.type === PU_BOMBUP ? '#bb1111' :
+                     pu.type === PU_FIREUP  ? '#cc5500' : '#0f44cc';
+    const rimColor = pu.type === PU_BOMBUP ? '#ff5555' :
+                     pu.type === PU_FIREUP  ? '#ffaa22' : '#55aaff';
+
+    ctx.save();
+
+    // Pulsing background
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(cx + p, cy + p, s - p * 2, s - p * 2);
+
+    // Highlight corner
+    ctx.fillStyle = 'rgba(255,255,255,0.20)';
+    ctx.fillRect(cx + p, cy + p, (s - p * 2) * 0.5, (s - p * 2) * 0.5);
+
+    // Pulsing rim
+    ctx.strokeStyle = rimColor;
+    ctx.lineWidth = 1.5 + pulse * 2;
+    ctx.strokeRect(cx + p, cy + p, s - p * 2, s - p * 2);
+
+    // Draw icon centred
+    ctx.translate(cx + mid, cy + mid);
+    const is = s * 0.25; // icon scale radius
+    ctx.fillStyle = '#ffffff';
+
+    if (pu.type === PU_BOMBUP) {
+        // Bomb circle + fuse
+        ctx.beginPath();
+        ctx.arc(0, is * 0.15, is * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.beginPath();
+        ctx.ellipse(-is * 0.22, -is * 0.08, is * 0.26, is * 0.17, -0.8, 0, Math.PI * 2);
+        ctx.fill();
+        // Fuse
+        ctx.strokeStyle = '#ffee88';
+        ctx.lineWidth = Math.max(1.5, s * 0.038);
+        ctx.beginPath();
+        ctx.moveTo(is * 0.48, -is * 0.52);
+        ctx.quadraticCurveTo(is * 0.85, -is * 1.0, is * 0.18, -is * 1.18);
+        ctx.stroke();
+        // +1 badge
+        ctx.fillStyle = '#ffee44';
+        ctx.font = `bold ${s * 0.22}px Arial, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+1', is * 0.72, is * 0.92);
+
+    } else if (pu.type === PU_FIREUP) {
+        // Outer flame (yellow)
+        ctx.fillStyle = '#ffdd44';
+        ctx.beginPath();
+        ctx.moveTo(0, -is * 1.1);
+        ctx.bezierCurveTo( is * 0.85, -is * 0.25,  is * 0.7,  is * 0.82, 0,  is * 1.0);
+        ctx.bezierCurveTo(-is * 0.7,   is * 0.82, -is * 0.85, -is * 0.25, 0, -is * 1.1);
+        ctx.fill();
+        // Inner flame (white)
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(0, -is * 0.35);
+        ctx.bezierCurveTo( is * 0.38,  is * 0.12,  is * 0.32,  is * 0.72, 0,  is * 0.85);
+        ctx.bezierCurveTo(-is * 0.32,  is * 0.72, -is * 0.38,  is * 0.12, 0, -is * 0.35);
+        ctx.fill();
+        // +1 badge
+        ctx.fillStyle = '#ff4400';
+        ctx.font = `bold ${s * 0.22}px Arial, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+1', is * 1.08, is * 0.72);
+
+    } else {
+        // Lightning bolt
+        ctx.fillStyle = '#ffff55';
+        ctx.beginPath();
+        ctx.moveTo( is * 0.28, -is * 1.1);
+        ctx.lineTo(-is * 0.12, -is * 0.02);
+        ctx.lineTo( is * 0.22, -is * 0.02);
+        ctx.lineTo(-is * 0.28,  is * 1.1);
+        ctx.lineTo( is * 0.12,  is * 0.02);
+        ctx.lineTo(-is * 0.22,  is * 0.02);
+        ctx.closePath();
+        ctx.fill();
+        // +1 badge
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${s * 0.22}px Arial, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+1', is * 0.88, is * 0.90);
+    }
+
+    ctx.restore();
+}
+
+function drawHUD(now) {
+    ctx.fillStyle = '#12122a';
+    ctx.fillRect(0, 0, canvas.width, HUD_H);
+    ctx.strokeStyle = '#ff8800';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, HUD_H - 1);
+    ctx.lineTo(canvas.width, HUD_H - 1);
+    ctx.stroke();
+
+    const fs = Math.max(11, Math.min(16, CELL * 0.38));
+    ctx.font = `bold ${fs}px 'Courier New', monospace`;
+    ctx.textBaseline = 'middle';
+    const mid = HUD_H / 2;
+
+    // Lives
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff4444';
+    ctx.fillText('❤'.repeat(Math.max(0, player.lives)), 8, mid);
+
+    // Score
+    ctx.fillStyle = '#ffff44';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${score}`, canvas.width / 2, mid);
+
+    // Level + bombs
+    ctx.fillStyle = '#44ffff';
+    ctx.textAlign = 'right';
+    const bombsLeft = player.maxBombs - player.activeBombs;
+    ctx.fillText(`Lv${level}  💣×${bombsLeft}  🔥${player.fireRange}`, canvas.width - 8, mid);
+}
+
+function drawOverlay(lines, titleColor) {
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const cx  = canvas.width  / 2;
+    const cy  = canvas.height / 2;
+    const lh  = CELL * 0.72;
+    const total = lines.length;
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    lines.forEach((line, i) => {
+        const isTitle = i === 0;
+        ctx.font = `bold ${isTitle ? CELL * 1.0 : CELL * 0.5}px 'Courier New', monospace`;
+        ctx.fillStyle = isTitle ? titleColor : (line === '' ? 'transparent' : '#dddddd');
+        ctx.fillText(line, cx, cy + (i - total / 2 + 0.5) * lh);
+    });
+}
+
+// ─── TOAST MESSAGES ──────────────────────────────────────────
+let toast = { text: '', timer: 0, color: '#ffff44' };
+
+function showToast(text, duration = 2.5, color = '#ffff44') {
+    toast.text  = text;
+    toast.timer = duration;
+    toast.color = color;
+}
+
+function drawToast() {
+    if (toast.timer <= 0) return;
+    const alpha = Math.min(1, toast.timer * 3.5);
+    const midX  = canvas.width / 2;
+    const midY  = canvas.height * 0.70;
+    const fs    = Math.max(12, Math.min(17, CELL * 0.44));
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = `bold ${fs}px 'Courier New', monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const w = ctx.measureText(toast.text).width + 26;
+    const h = fs + 18;
+    ctx.fillStyle   = 'rgba(0,0,0,0.82)';
+    ctx.fillRect(midX - w / 2, midY - h / 2, w, h);
+    ctx.strokeStyle = toast.color;
+    ctx.lineWidth   = 2;
+    ctx.strokeRect(midX - w / 2, midY - h / 2, w, h);
+    ctx.fillStyle   = toast.color;
+    ctx.fillText(toast.text, midX, midY);
+    ctx.restore();
+}
+
+// ─── MAIN DRAW ───────────────────────────────────────────────
+function draw(now) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawHUD(now);
+
+    // Grid
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const cx   = c * CELL;
+            const cy   = r * CELL + HUD_H;
+            const tile = grid[r][c];
+            if (tile === T_HARD) {
+                drawHardWall(cx, cy, CELL);
+            } else if (tile === T_SOFT) {
+                drawFloor(cx, cy, CELL);
+                drawSoftBlock(cx, cy, CELL);
+            } else if (tile === T_EXIT) {
+                drawExit(cx, cy, CELL);
+            } else {
+                drawFloor(cx, cy, CELL);
+            }
+        }
+    }
+
+    // Explosions
+    for (const exp of explosions) {
+        const alpha = Math.min(1, exp.timer / 0.25);
+        for (const cell of exp.cells) drawExplosionCell(cell, alpha);
+    }
+
+    // Power-ups
+    for (const pu of powerups) drawPowerup(pu, CELL, now);
+
+    // Bombs
+    for (const bomb of bombs) {
+        if (bomb.state !== 'armed') continue;
+        const bx = bomb.x * CELL;
+        const by = bomb.y * CELL + HUD_H;
+        drawFloor(bx, by, CELL);
+        drawBomb(bx, by, CELL, bomb.timer / 3.0, now);
+    }
+
+    // Enemies
+    for (const enemy of enemies) {
+        if (enemy.alive) drawEnemy(enemy, CELL, now);
+    }
+
+    // Player
+    drawPlayer(player.x, player.y, CELL, now);
+
+    // Toast messages (above gameplay, below full overlays)
+    drawToast();
+
+    // State overlays
+    if (gameState === S_MENU) {
+        drawOverlay([
+            '💣 BOMBERMAN',
+            'Destroy enemies!',
+            'Find the exit ★ to advance',
+            '',
+            'Arrow keys / WASD  – Move',
+            'Space  – Place bomb',
+            '',
+            '▶ Press SPACE or tap to start',
+        ], '#ffcc00');
+    } else if (gameState === S_GAMEOVER) {
+        drawOverlay([
+            'GAME OVER',
+            `Score: ${score}`,
+            '',
+            'Press SPACE to retry',
+        ], '#ff4444');
+    } else if (gameState === S_WIN) {
+        drawOverlay([
+            '🎉 YOU WIN! 🎉',
+            `Final Score: ${score}`,
+            `Levels cleared: ${MAX_LEVELS}`,
+            '',
+            'Press SPACE to play again',
+        ], '#44ff88');
+    } else if (gameState === S_LEVEL_WIN) {
+        drawOverlay([
+            `LEVEL ${level}`,
+            'COMPLETE!',
+            `+${500 + level * 100} pts`,
+            '',
+            'Loading next level...',
+        ], '#44ffff');
+    }
+}
+
+// ─── GAME LOOP ───────────────────────────────────────────────
+let lastTime = 0;
+
+function gameLoop(timestamp) {
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+    lastTime = timestamp;
+
+    update(dt);
+    draw(timestamp);
+
+    requestAnimationFrame(gameLoop);
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+function init() {
+    computeLayout();
+    setupMobileControls();
+
+    window.addEventListener('resize', () => {
+        computeLayout();
+    });
+
+    // Generate a dummy grid for the menu screen background
+    generateLevel(1);
+    updateLegendDOM();
+    gameState = S_MENU;
+
+    requestAnimationFrame(ts => {
+        lastTime = ts;
+        requestAnimationFrame(gameLoop);
+    });
+}
+
+init();
+</script>
+</body>
+</html>
