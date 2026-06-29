@@ -1,0 +1,15 @@
+game:
+  id: copilot-bir
+  name: copilot-bir
+  description: ''
+pull_requests:
+  - number: 27
+    title: Add Copilot Bird – Flappy Bird clone with GitHub Copilot theme
+    url: https://github.com/rajbos/game-center/pull/27
+    merged_at: '2026-06-29T12:34:37Z'
+    author: rajbos
+    description: A Flappy Bird-style game built with HTML5 Canvas, themed around GitHub Copilot.
+stats:
+  total_prs: 1
+  first_pr_date: '2026-06-29T12:34:37Z'
+  last_pr_date: '2026-06-29T12:34:37Z'

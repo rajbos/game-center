@@ -53,7 +53,8 @@
       "path": "./games/copilot-bir",
       "createdWith": "GitHub Copilot",
       "model": "Claude Sonnet 4.6",
-      "prLinks": []
+      "prLinks": [],
+      "prCount": 1
     },
     {
       "id": "game-3",
