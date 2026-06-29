@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Copilot Bir</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0d1117;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            color: #58a6ff;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        h1 {
+            font-size: clamp(1.2rem, 4vw, 2rem);
+            letter-spacing: 0.3rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #58a6ff, 0 0 20px #58a6ff;
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 10px #58a6ff, 0 0 20px #58a6ff; }
+            50%       { text-shadow: 0 0 20px #58a6ff, 0 0 40px #79c0ff, 0 0 60px #79c0ff; }
+        }
+
+        #game-wrapper {
+            position: relative;
+            border: 3px solid #30363d;
+            border-radius: 8px;
+            box-shadow: 0 0 30px #58a6ff44, 0 0 60px #58a6ff22;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #hud {
+            position: absolute;
+            top: 12px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 16px;
+            pointer-events: none;
+        }
+
+        .hud-box {
+            background: #0d1117cc;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            color: #e6edf3;
+        }
+
+        .hud-box span {
+            color: #58a6ff;
+            font-weight: bold;
+        }
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #0d1117dd;
+            gap: 14px;
+        }
+
+        #overlay.hidden { display: none; }
+
+        .overlay-title {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            color: #58a6ff;
+            text-shadow: 0 0 15px #58a6ff;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+
+        .overlay-sub {
+            font-size: clamp(0.75rem, 2.5vw, 1rem);
+            color: #8b949e;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .score-display {
+            font-size: clamp(1rem, 3vw, 1.4rem);
+            color: #3fb950;
+            text-shadow: 0 0 8px #3fb950;
+        }
+
+        .best-display {
+            font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+            color: #8b949e;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #1f6feb, #388bfd);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 32px;
+            font-family: 'Courier New', monospace;
+            font-size: clamp(0.85rem, 2.5vw, 1rem);
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #1f6feb88;
+            text-transform: uppercase;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .start-btn:hover { transform: scale(1.05); box-shadow: 0 0 25px #1f6feb; }
+        .start-btn:active { transform: scale(0.97); }
+
+        #controls-hint {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #484f58;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🤖 Copilot Bir</h1>
+
+    <div id="game-wrapper">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="hud">
+            <div class="hud-box">Score: <span id="scoreDisplay">0</span></div>
+            <div class="hud-box">Best: <span id="bestDisplay">0</span></div>
+        </div>
+
+        <div id="overlay">
+            <div class="overlay-title" id="overlayTitle">Copilot Bir</div>
+            <div class="overlay-sub" id="overlaySub">Navigate the code pipes!<br>Don't let the bugs crash you.</div>
+            <div class="score-display hidden" id="overlayScore"></div>
+            <div class="best-display hidden" id="overlayBest"></div>
+            <button class="start-btn" id="startBtn">▶ START</button>
+            <div class="overlay-sub" style="font-size:0.7rem; color:#484f58;">Space / Tap / Click to flap</div>
+        </div>
+
+        <div id="controls-hint">SPACE · TAP · CLICK — to flap</div>
+    </div>
+
+    <script>
+    (() => {
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlaySub = document.getElementById('overlaySub');
+        const overlayScore = document.getElementById('overlayScore');
+        const overlayBest = document.getElementById('overlayBest');
+        const startBtn = document.getElementById('startBtn');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const bestDisplay = document.getElementById('bestDisplay');
+
+        // ── Responsive canvas sizing ────────────────────────────────────────
+        const BASE_W = 400;
+        const BASE_H = 600;
+        let scale = 1;
+
+        function resize() {
+            const maxW = Math.min(window.innerWidth - 20, 480);
+            const maxH = Math.min(window.innerHeight - 100, 680);
+            scale = Math.min(maxW / BASE_W, maxH / BASE_H);
+            canvas.width  = Math.floor(BASE_W * scale);
+            canvas.height = Math.floor(BASE_H * scale);
+            canvas.style.width  = canvas.width + 'px';
+            canvas.style.height = canvas.height + 'px';
+        }
+        resize();
+        window.addEventListener('resize', () => { resize(); if (state === 'idle' || state === 'dead') drawBackground(); });
+
+        // ── Game constants (logical units, scaled on draw) ──────────────────
+        const GRAVITY     = 0.45;
+        const FLAP_VEL    = -8.5;
+        const PIPE_SPEED  = 2.8;
+        const PIPE_GAP    = 140;
+        const PIPE_W      = 60;
+        const PIPE_SPAWN  = 220;
+        const GROUND_H    = 60;
+        const BIRD_X      = 90;
+        const BIRD_R      = 18;
+
+        // ── State ───────────────────────────────────────────────────────────
+        let state = 'idle';  // idle | playing | dead
+        let score = 0;
+        let best  = parseInt(localStorage.getItem('copilot-bir-best') || '0', 10);
+        bestDisplay.textContent = best;
+
+        let birdY, birdVY, pipes, frame, passedPipes, flashAlpha;
+
+        // ── Stars for background ────────────────────────────────────────────
+        const STARS = Array.from({ length: 60 }, () => ({
+            x: Math.random() * BASE_W,
+            y: Math.random() * (BASE_H - GROUND_H),
+            r: Math.random() * 1.2 + 0.3,
+            a: Math.random()
+        }));
+
+        // ── Helpers ─────────────────────────────────────────────────────────
+        function S(v) { return v * scale; }
+
+        function initGame() {
+            birdY      = BASE_H / 2;
+            birdVY     = 0;
+            pipes      = [];
+            frame      = 0;
+            passedPipes = 0;
+            score      = 0;
+            flashAlpha = 0;
+            scoreDisplay.textContent = 0;
+        }
+
+        function flap() {
+            if (state === 'playing') {
+                birdVY = FLAP_VEL;
+            }
+        }
+
+        // ── Drawing helpers ─────────────────────────────────────────────────
+
+        function drawBackground() {
+            // Sky gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, S(BASE_H - GROUND_H));
+            grad.addColorStop(0, '#010409');
+            grad.addColorStop(1, '#0d1117');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, S(BASE_H - GROUND_H));
+
+            // Stars
+            STARS.forEach(star => {
+                const alpha = 0.4 + 0.6 * Math.abs(Math.sin(star.a + frame * 0.02));
+                ctx.beginPath();
+                ctx.arc(S(star.x), S(star.y), S(star.r), 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(200, 210, 255, ${alpha})`;
+                ctx.fill();
+            });
+
+            // Ground
+            const gGrad = ctx.createLinearGradient(0, S(BASE_H - GROUND_H), 0, S(BASE_H));
+            gGrad.addColorStop(0, '#161b22');
+            gGrad.addColorStop(1, '#0d1117');
+            ctx.fillStyle = gGrad;
+            ctx.fillRect(0, S(BASE_H - GROUND_H), canvas.width, S(GROUND_H));
+
+            // Ground line
+            ctx.strokeStyle = '#30363d';
+            ctx.lineWidth = S(2);
+            ctx.beginPath();
+            ctx.moveTo(0, S(BASE_H - GROUND_H));
+            ctx.lineTo(canvas.width, S(BASE_H - GROUND_H));
+            ctx.stroke();
+
+            // Ground grid lines (circuit board look)
+            ctx.strokeStyle = '#21262d';
+            ctx.lineWidth = S(1);
+            for (let x = 0; x < BASE_W; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(S(x), S(BASE_H - GROUND_H));
+                ctx.lineTo(S(x), S(BASE_H));
+                ctx.stroke();
+            }
+        }
+
+        function drawPipe(pipe) {
+            const px = S(pipe.x);
+            const pw = S(PIPE_W);
+            const topH = S(pipe.topH);
+            const botY = S(pipe.topH + PIPE_GAP);
+            const botH = S(BASE_H - GROUND_H - pipe.topH - PIPE_GAP);
+
+            const pipeGrad = ctx.createLinearGradient(px, 0, px + pw, 0);
+            pipeGrad.addColorStop(0, '#161b22');
+            pipeGrad.addColorStop(0.3, '#1f6feb');
+            pipeGrad.addColorStop(0.7, '#388bfd');
+            pipeGrad.addColorStop(1, '#161b22');
+
+            // Top pipe body
+            ctx.fillStyle = pipeGrad;
+            ctx.fillRect(px, 0, pw, topH);
+
+            // Top pipe cap
+            const capW = S(PIPE_W + 10);
+            const capH = S(16);
+            ctx.fillStyle = '#388bfd';
+            ctx.fillRect(px - S(5), topH - capH, capW, capH);
+            ctx.strokeStyle = '#79c0ff';
+            ctx.lineWidth = S(1.5);
+            ctx.strokeRect(px - S(5), topH - capH, capW, capH);
+
+            // Bottom pipe body
+            ctx.fillStyle = pipeGrad;
+            ctx.fillRect(px, botY, pw, botH);
+
+            // Bottom pipe cap
+            ctx.fillStyle = '#388bfd';
+            ctx.fillRect(px - S(5), botY, capW, capH);
+            ctx.strokeStyle = '#79c0ff';
+            ctx.lineWidth = S(1.5);
+            ctx.strokeRect(px - S(5), botY, capW, capH);
+
+            // Pipe border glow
+            ctx.strokeStyle = '#58a6ff44';
+            ctx.lineWidth = S(1);
+            ctx.strokeRect(px, 0, pw, topH);
+            ctx.strokeRect(px, botY, pw, botH);
+
+            // Code label on pipe
+            ctx.font = `bold ${S(10)}px 'Courier New', monospace`;
+            ctx.fillStyle = '#79c0ff88';
+            ctx.textAlign = 'center';
+            if (topH > S(30)) {
+                ctx.fillText('{...}', px + pw / 2, topH / 2 + S(5));
+            }
+            if (botH > S(30)) {
+                ctx.fillText('[  ]', px + pw / 2, botY + botH / 2 + S(5));
+            }
+        }
+
+        function drawBird(y, vy) {
+            const bx = S(BIRD_X);
+            const by = S(y);
+            const r  = S(BIRD_R);
+            const tilt = Math.max(-0.5, Math.min(1.2, vy * 0.06));
+
+            ctx.save();
+            ctx.translate(bx, by);
+            ctx.rotate(tilt);
+
+            // Body glow
+            const glow = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 1.8);
+            glow.addColorStop(0, '#58a6ff44');
+            glow.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Body
+            const bodyGrad = ctx.createRadialGradient(-r * 0.2, -r * 0.2, r * 0.1, 0, 0, r);
+            bodyGrad.addColorStop(0, '#79c0ff');
+            bodyGrad.addColorStop(0.6, '#388bfd');
+            bodyGrad.addColorStop(1, '#1158c7');
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Copilot "ghost" eye pattern (two white dots)
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(r * 0.25, -r * 0.15, r * 0.32, r * 0.38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(-r * 0.2, -r * 0.05, r * 0.22, r * 0.28, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pupils
+            ctx.fillStyle = '#0d1117';
+            ctx.beginPath();
+            ctx.arc(r * 0.3, -r * 0.15, r * 0.14, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(-r * 0.16, -r * 0.1, r * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.arc(-r * 0.25, -r * 0.35, r * 0.18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Wing (flap animation)
+            const wingAnim = Math.sin(frame * 0.25) * 0.3;
+            ctx.fillStyle = '#1f6feb';
+            ctx.beginPath();
+            ctx.ellipse(-r * 0.1, r * 0.3 + wingAnim * r, r * 0.5, r * 0.22, -0.5 + wingAnim, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Beak
+            ctx.fillStyle = '#f0883e';
+            ctx.beginPath();
+            ctx.moveTo(r * 0.8, 0);
+            ctx.lineTo(r * 1.4, -r * 0.1);
+            ctx.lineTo(r * 1.4, r * 0.15);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawScore() {
+            ctx.textAlign = 'center';
+            ctx.font = `bold ${S(36)}px 'Courier New', monospace`;
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.fillText(score, canvas.width / 2 + S(2), S(80) + S(2));
+            ctx.fillStyle = '#e6edf3';
+            ctx.fillText(score, canvas.width / 2, S(80));
+        }
+
+        function drawFlash() {
+            if (flashAlpha > 0) {
+                ctx.fillStyle = `rgba(88, 166, 255, ${flashAlpha})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                flashAlpha -= 0.07;
+                if (flashAlpha < 0) flashAlpha = 0;
+            }
+        }
+
+        // ── Collision ───────────────────────────────────────────────────────
+        function checkCollision() {
+            const bx = BIRD_X;
+            const by = birdY;
+            const r  = BIRD_R - 2;
+
+            // Ground / ceiling
+            if (by + r >= BASE_H - GROUND_H || by - r <= 0) return true;
+
+            for (const pipe of pipes) {
+                const left  = pipe.x - 5;
+                const right = pipe.x + PIPE_W + 5;
+                const capExt = 5;
+
+                if (bx + r > left && bx - r < right) {
+                    if (by - r < pipe.topH + capExt) return true;
+                    if (by + r > pipe.topH + PIPE_GAP - capExt) return true;
+                }
+            }
+            return false;
+        }
+
+        // ── Particles for score ─────────────────────────────────────────────
+        let particles = [];
+        function spawnParticles() {
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: BASE_W / 2, y: 60,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 1.0,
+                    color: ['#58a6ff', '#3fb950', '#79c0ff', '#f0883e'][Math.floor(Math.random() * 4)]
+                });
+            }
+        }
+
+        function updateParticles() {
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.04;
+            });
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(S(p.x), S(p.y), S(3 * p.life), 0, Math.PI * 2);
+                ctx.fillStyle = p.color + Math.floor(p.life * 255).toString(16).padStart(2, '0');
+                ctx.fill();
+            });
+        }
+
+        // ── Game loop ───────────────────────────────────────────────────────
+        let animId = null;
+
+        function loop() {
+            frame++;
+
+            // Physics
+            birdVY += GRAVITY;
+            birdY  += birdVY;
+
+            // Spawn pipes
+            if (frame % PIPE_SPAWN === 0) {
+                const minTop = 50;
+                const maxTop = BASE_H - GROUND_H - PIPE_GAP - 50;
+                const topH   = Math.floor(Math.random() * (maxTop - minTop) + minTop);
+                pipes.push({ x: BASE_W + 10, topH, scored: false });
+            }
+
+            // Move and score pipes
+            pipes.forEach(pipe => {
+                pipe.x -= PIPE_SPEED;
+                if (!pipe.scored && pipe.x + PIPE_W < BIRD_X - BIRD_R) {
+                    pipe.scored = true;
+                    score++;
+                    passedPipes++;
+                    scoreDisplay.textContent = score;
+                    spawnParticles();
+                    if (score > best) {
+                        best = score;
+                        bestDisplay.textContent = best;
+                        localStorage.setItem('copilot-bir-best', best);
+                    }
+                    // Speed up slightly every 5 pipes
+                    if (score % 5 === 0) flashAlpha = 0.25;
+                }
+            });
+            pipes = pipes.filter(p => p.x + PIPE_W + 10 > 0);
+
+            updateParticles();
+
+            // Collision check
+            if (checkCollision()) {
+                state = 'dead';
+                showDeadScreen();
+                return;
+            }
+
+            // Draw
+            drawBackground();
+            pipes.forEach(drawPipe);
+            drawBird(birdY, birdVY);
+            drawParticles();
+            drawFlash();
+            drawScore();
+
+            animId = requestAnimationFrame(loop);
+        }
+
+        function showDeadScreen() {
+            overlay.classList.remove('hidden');
+            overlayTitle.textContent = 'CRASHED!';
+            overlaySub.textContent = 'A wild bug appeared!';
+            overlayScore.textContent = `Score: ${score}`;
+            overlayScore.classList.remove('hidden');
+            overlayBest.textContent  = `Best: ${best}`;
+            overlayBest.classList.remove('hidden');
+            startBtn.textContent = '↺ RETRY';
+            // Draw the dead frame once more
+            drawBackground();
+            pipes.forEach(drawPipe);
+            drawBird(birdY, birdVY);
+        }
+
+        function startGame() {
+            if (animId) cancelAnimationFrame(animId);
+            initGame();
+            state = 'playing';
+            overlay.classList.add('hidden');
+            overlayScore.classList.add('hidden');
+            overlayBest.classList.add('hidden');
+            loop();
+        }
+
+        // ── Input ───────────────────────────────────────────────────────────
+        startBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            startGame();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                if (state === 'playing') flap();
+                else if (state === 'dead' || state === 'idle') startGame();
+            }
+        });
+
+        canvas.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            if (state === 'playing') flap();
+        });
+
+        document.addEventListener('pointerdown', e => {
+            if (state === 'dead' || state === 'idle') {
+                if (e.target !== startBtn) startGame();
+            }
+        });
+
+        // ── Initial idle render ─────────────────────────────────────────────
+        birdY  = BASE_H / 2;
+        birdVY = 0;
+        pipes  = [];
+        frame  = 0;
+        drawBackground();
+        drawBird(birdY, 0);
+        bestDisplay.textContent = best;
+    })();
+    </script>
+
+    <script>
+        (async function() {
+            try {
+                const response = await fetch('../../shared/pr-history-panel.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html;
+                    temp.querySelectorAll('style').forEach(s => document.head.appendChild(s.cloneNode(true)));
+                    temp.querySelectorAll('button, #pr-history-panel').forEach(el => document.body.appendChild(el.cloneNode(true)));
+                    temp.querySelectorAll('script').forEach(script => {
+                        const ns = document.createElement('script');
+                        ns.textContent = script.textContent;
+                        document.body.appendChild(ns);
+                    });
+                }
+            } catch (e) { /* PR panel is optional */ }
+        })();
+    </script>
+</body>
+</html>

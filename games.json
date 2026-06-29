@@ -46,6 +46,16 @@
       ]
     },
     {
+      "id": "copilot-bir",
+      "name": "Copilot Bird",
+      "description": "Flappy Bird meets GitHub Copilot! Navigate the code pipes without crashing. Tap or press Space to flap.",
+      "status": "Ready to Play",
+      "path": "./games/copilot-bir",
+      "createdWith": "GitHub Copilot",
+      "model": "Claude Sonnet 4.6",
+      "prLinks": []
+    },
+    {
       "id": "game-3",
       "name": "Head Ball",
       "description": "A one-on-one soccer game with Lamborghini cars! Score goals, unlock power-ups, and enjoy confetti celebrations.",
