@@ -1,4 +1,4 @@
-# Copilot Bir 🤖
+# Copilot Bird 🤖
 
 A Flappy Bird-style browser game with a GitHub Copilot theme. Navigate through code-styled pipes without crashing!
 
