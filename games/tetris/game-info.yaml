@@ -1,0 +1,20 @@
+# Game Information and PR Tracking
+game:
+  id: tetris
+  name: "Tetris"
+  description: "Stack falling tetrominoes, clear lines, and chase a high score in this retro neon puzzle classic."
+
+# Pull Requests that modified this game (newest first)
+pull_requests:
+  - number: 30
+    title: "Add Tetris game"
+    url: "https://github.com/rajbos/game-center/pull/30"
+    merged_at: "2026-06-29T12:00:00Z"
+    author: "rajbos"
+    description: "Initial Tetris implementation with full gameplay, mobile support, and retro neon styling"
+
+# Statistics
+stats:
+  total_prs: 1
+  first_pr_date: "2026-06-29T12:00:00Z"
+  last_pr_date: "2026-06-29T12:00:00Z"
