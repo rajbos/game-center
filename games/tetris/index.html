@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Tetris</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #000010 0%, #001030 50%, #000020 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 8px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        #top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 560px;
+            margin-bottom: 8px;
+            gap: 8px;
+        }
+
+        h1 {
+            font-size: clamp(1.1rem, 4vw, 1.8rem);
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+            color: #00ffff;
+            flex: 1;
+            text-align: center;
+        }
+
+        #back-btn {
+            color: #00ffff;
+            text-decoration: none;
+            border: 1px solid #00aaff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-family: 'Courier New', monospace;
+            background: rgba(0,170,255,0.1);
+            white-space: nowrap;
+            transition: background 0.15s;
+        }
+        #back-btn:hover { background: rgba(0,170,255,0.35); }
+
+        #game-wrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        canvas {
+            display: block;
+            border: 3px solid #00aaff;
+            border-radius: 4px;
+            box-shadow: 0 0 20px #00aaff, 0 0 40px rgba(0,170,255,0.3);
+            max-width: 100%;
+        }
+
+        /* Side panel */
+        #side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 130px;
+        }
+
+        .panel-box {
+            background: rgba(0, 10, 30, 0.88);
+            border: 2px solid #00aaff;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .panel-title {
+            color: #00aaff;
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 0.08rem;
+            text-transform: uppercase;
+            border-bottom: 1px solid #00aaff44;
+            padding-bottom: 4px;
+            margin-bottom: 6px;
+        }
+
+        .panel-value {
+            color: #00ffff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 0 0 8px #00ffff;
+        }
+
+        #next-canvas {
+            display: block;
+            border: none;
+            box-shadow: none;
+            margin: 0 auto;
+        }
+
+        .key-hint {
+            font-size: 0.62rem;
+            color: #667788;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+        .key-hint span {
+            color: #aabbcc;
+        }
+
+        /* Overlay messages */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,16,0.82);
+            border-radius: 4px;
+            gap: 10px;
+        }
+
+        #overlay-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            text-shadow: 0 0 16px currentColor;
+        }
+
+        #overlay-sub {
+            font-size: 0.78rem;
+            color: #aabbcc;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .overlay-btn {
+            margin-top: 6px;
+            background: rgba(0,170,255,0.15);
+            border: 2px solid #00aaff;
+            border-radius: 6px;
+            color: #00ffff;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            padding: 8px 22px;
+            cursor: pointer;
+            letter-spacing: 0.08rem;
+            transition: background 0.15s;
+        }
+        .overlay-btn:hover { background: rgba(0,170,255,0.4); }
+
+        #canvas-container {
+            position: relative;
+        }
+
+        /* Mobile controls */
+        #mobile-controls {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            max-width: 360px;
+            padding: 4px 8px;
+            margin-top: 4px;
+        }
+
+        @media (max-width: 700px), (pointer: coarse) {
+            #mobile-controls { display: flex; }
+        }
+
+        .ctrl-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .ctrl-btn {
+            background: rgba(0,170,255,0.2);
+            border: 2px solid #00aaff;
+            border-radius: 8px;
+            color: #00ffff;
+            font-size: 1.3rem;
+            width: 56px;
+            height: 56px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.1s;
+            user-select: none;
+        }
+        .ctrl-btn:active, .ctrl-btn.pressed {
+            background: rgba(0,170,255,0.55);
+        }
+        .ctrl-btn.wide {
+            width: 88px;
+            font-size: 0.8rem;
+            letter-spacing: 0.05rem;
+        }
+
+        /* Stack side panel below canvas on narrow screens */
+        @media (max-width: 600px) {
+            #game-wrapper {
+                flex-direction: column;
+                align-items: center;
+            }
+            #side-panel {
+                flex-direction: row;
+                flex-wrap: wrap;
+                min-width: 0;
+                max-width: 100%;
+                width: 100%;
+                justify-content: center;
+            }
+            .panel-box {
+                min-width: 110px;
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <a id="back-btn" href="../../index.html">&#8592; Arcade</a>
+        <h1>Tetris</h1>
+        <div style="width:72px"></div>
+    </div>
+
+    <div id="game-wrapper">
+        <div id="canvas-container">
+            <canvas id="board"></canvas>
+            <div id="overlay">
+                <div id="overlay-title" style="color:#00ffff">TETRIS</div>
+                <div id="overlay-sub">Stack the blocks.<br>Clear the lines.</div>
+                <button class="overlay-btn" id="overlay-btn">START</button>
+            </div>
+        </div>
+
+        <div id="side-panel">
+            <div class="panel-box">
+                <div class="panel-title">Score</div>
+                <div class="panel-value" id="score-val">0</div>
+            </div>
+            <div class="panel-box">
+                <div class="panel-title">Level</div>
+                <div class="panel-value" id="level-val">1</div>
+            </div>
+            <div class="panel-box">
+                <div class="panel-title">Lines</div>
+                <div class="panel-value" id="lines-val">0</div>
+            </div>
+            <div class="panel-box">
+                <div class="panel-title">Next</div>
+                <canvas id="next-canvas" width="80" height="80"></canvas>
+            </div>
+            <div class="panel-box">
+                <div class="panel-title">Controls</div>
+                <div class="key-hint">
+                    <span>← →</span> Move<br>
+                    <span>↑ / Z</span> Rotate<br>
+                    <span>↓</span> Soft drop<br>
+                    <span>Space</span> Hard drop<br>
+                    <span>P</span> Pause<br>
+                    <span>R</span> Restart
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mobile-controls">
+        <div class="ctrl-row">
+            <button class="ctrl-btn" id="btn-rotate" aria-label="Rotate">&#8635;</button>
+        </div>
+        <div class="ctrl-row">
+            <button class="ctrl-btn" id="btn-left" aria-label="Move Left">&#9664;</button>
+            <button class="ctrl-btn wide" id="btn-drop" aria-label="Hard Drop">DROP</button>
+            <button class="ctrl-btn" id="btn-right" aria-label="Move Right">&#9654;</button>
+        </div>
+        <div class="ctrl-row">
+            <button class="ctrl-btn" id="btn-down" aria-label="Soft Drop">&#9660;</button>
+        </div>
+    </div>
+
+    <script>
+    (() => {
+        'use strict';
+
+        // ── Constants ──────────────────────────────────────────────
+        const COLS = 10;
+        const ROWS = 20;
+        const CELL = 30; // px per cell on desktop; scaled down on small screens
+        const COLORS = {
+            I: '#00ffff',
+            O: '#ffff00',
+            T: '#cc00ff',
+            S: '#00ff44',
+            Z: '#ff2244',
+            J: '#0055ff',
+            L: '#ff8800',
+        };
+        const GHOST_ALPHA = 0.22;
+        const LINES_PER_LEVEL = 10;
+        const SCORE_TABLE = [0, 100, 300, 500, 800]; // 0–4 lines
+
+        // Tetromino shapes (each is a list of [row, col] offsets from pivot)
+        const TETROMINOES = {
+            I: [[0,-1],[0,0],[0,1],[0,2]],
+            O: [[0,0],[0,1],[1,0],[1,1]],
+            T: [[0,-1],[0,0],[0,1],[1,0]],
+            S: [[0,0],[0,1],[1,-1],[1,0]],
+            Z: [[0,-1],[0,0],[1,0],[1,1]],
+            J: [[0,-1],[0,0],[0,1],[1,1]],
+            L: [[0,-1],[0,0],[0,1],[1,-1]],
+        };
+
+        // Wall-kick data (SRS, for J/L/S/Z/T)
+        const KICKS_JLSZT = [
+            [[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]], // 0→1
+            [[0,0],[1,0],[1,-1],[0,2],[1,2]],      // 1→2
+            [[0,0],[1,0],[1,1],[0,-2],[1,-2]],     // 2→3
+            [[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],  // 3→0
+        ];
+        const KICKS_I = [
+            [[0,0],[-2,0],[1,0],[-2,-1],[1,2]],   // 0→1
+            [[0,0],[-1,0],[2,0],[-1,2],[2,-1]],   // 1→2
+            [[0,0],[2,0],[-1,0],[2,1],[-1,-2]],   // 2→3
+            [[0,0],[1,0],[-2,0],[1,-2],[-2,1]],   // 3→0
+        ];
+
+        // ── Canvas setup ───────────────────────────────────────────
+        const canvas = document.getElementById('board');
+        const ctx = canvas.getContext('2d');
+        const nextCanvas = document.getElementById('next-canvas');
+        const nextCtx = nextCanvas.getContext('2d');
+
+        function resizeCanvas() {
+            const maxH = window.innerHeight - 160;
+            const maxW = window.innerWidth - 200; // leave room for side panel
+            const cellByH = Math.floor(maxH / ROWS);
+            const cellByW = Math.floor(maxW / COLS);
+            const cell = Math.max(18, Math.min(CELL, cellByH, cellByW));
+            canvas.width = COLS * cell;
+            canvas.height = ROWS * cell;
+            canvas.dataset.cell = cell;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+
+        // ── State ──────────────────────────────────────────────────
+        let board, current, next, score, level, lines, state, lastTime, dropAccum;
+        // state: 'idle' | 'playing' | 'paused' | 'over'
+
+        function init() {
+            board = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+            score = 0; level = 1; lines = 0;
+            state = 'playing';
+            lastTime = null; dropAccum = 0;
+            next = randomPiece();
+            spawnPiece();
+            updateHUD();
+            hideOverlay();
+            requestAnimationFrame(loop);
+        }
+
+        function randomPiece() {
+            const keys = Object.keys(TETROMINOES);
+            const key = keys[Math.floor(Math.random() * keys.length)];
+            return { type: key, cells: TETROMINOES[key].map(c => [...c]), rot: 0 };
+        }
+
+        function spawnPiece() {
+            current = {
+                type: next.type,
+                cells: TETROMINOES[next.type].map(c => [...c]),
+                rot: 0,
+                row: 0,
+                col: Math.floor(COLS / 2),
+            };
+            next = randomPiece();
+            if (collides(current.cells, current.row, current.col)) {
+                state = 'over';
+                showOverlay('GAME OVER', `Score: ${score}`, 'RESTART');
+            }
+        }
+
+        // ── Collision / helpers ────────────────────────────────────
+        function collides(cells, row, col) {
+            for (const [dr, dc] of cells) {
+                const r = row + dr, c = col + dc;
+                if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
+                if (board[r][c]) return true;
+            }
+            return false;
+        }
+
+        function rotate(cells, dir) {
+            // dir: 1=CW, -1=CCW
+            return cells.map(([r, c]) => dir === 1 ? [c, -r] : [-c, r]);
+        }
+
+        function getKicks(type, fromRot, dir) {
+            const toRot = (fromRot + dir + 4) % 4;
+            const table = type === 'I' ? KICKS_I : KICKS_JLSZT;
+            // SRS kick index is based on (fromRot, toRot)
+            // For CW: index = fromRot; for CCW: index = toRot
+            const idx = dir === 1 ? fromRot : toRot;
+            return table[idx] || [[0, 0]];
+        }
+
+        function tryRotate(dir) {
+            if (state !== 'playing') return;
+            const rotated = rotate(current.cells, dir);
+            const toRot = (current.rot + dir + 4) % 4;
+            if (current.type === 'O') return; // O piece doesn't rotate
+            for (const [kr, kc] of getKicks(current.type, current.rot, dir)) {
+                const nr = current.row + kr;
+                const nc = current.col + kc;
+                if (!collides(rotated, nr, nc)) {
+                    current.cells = rotated;
+                    current.rot = toRot;
+                    current.row = nr;
+                    current.col = nc;
+                    return;
+                }
+            }
+        }
+
+        function tryMove(dc) {
+            if (state !== 'playing') return;
+            if (!collides(current.cells, current.row, current.col + dc)) {
+                current.col += dc;
+            }
+        }
+
+        function softDrop() {
+            if (state !== 'playing') return;
+            if (!collides(current.cells, current.row + 1, current.col)) {
+                current.row++;
+                score += 1;
+                updateHUD();
+            } else {
+                lockPiece();
+            }
+        }
+
+        function hardDrop() {
+            if (state !== 'playing') return;
+            let dropped = 0;
+            while (!collides(current.cells, current.row + 1, current.col)) {
+                current.row++;
+                dropped++;
+            }
+            score += dropped * 2;
+            lockPiece();
+        }
+
+        function ghostRow() {
+            let r = current.row;
+            while (!collides(current.cells, r + 1, current.col)) r++;
+            return r;
+        }
+
+        function lockPiece() {
+            for (const [dr, dc] of current.cells) {
+                const r = current.row + dr;
+                const c = current.col + dc;
+                if (r >= 0 && r < ROWS) board[r][c] = current.type;
+            }
+            clearLines();
+            spawnPiece();
+        }
+
+        function clearLines() {
+            let cleared = 0;
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (board[r].every(cell => cell !== null)) {
+                    board.splice(r, 1);
+                    board.unshift(Array(COLS).fill(null));
+                    cleared++;
+                    r++; // re-check same index after splice
+                }
+            }
+            if (cleared > 0) {
+                lines += cleared;
+                score += (SCORE_TABLE[cleared] || 1200) * level;
+                level = Math.floor(lines / LINES_PER_LEVEL) + 1;
+                updateHUD();
+            }
+        }
+
+        function dropInterval() {
+            // ms per cell; speeds up with level (max level ~20)
+            return Math.max(50, 800 - (level - 1) * 35);
+        }
+
+        // ── Game loop ──────────────────────────────────────────────
+        function loop(ts) {
+            if (state === 'over' || state === 'idle') return;
+            if (state === 'paused') { requestAnimationFrame(loop); return; }
+
+            if (lastTime === null) lastTime = ts;
+            const dt = ts - lastTime;
+            lastTime = ts;
+
+            dropAccum += dt;
+            if (dropAccum >= dropInterval()) {
+                dropAccum = 0;
+                if (!collides(current.cells, current.row + 1, current.col)) {
+                    current.row++;
+                } else {
+                    lockPiece();
+                }
+            }
+
+            draw();
+            if (state === 'playing') requestAnimationFrame(loop);
+        }
+
+        // ── Drawing ────────────────────────────────────────────────
+        function cell() { return parseInt(canvas.dataset.cell) || CELL; }
+
+        function drawCell(ctx2, r, c, color, alpha, cw) {
+            const csize = cw || cell();
+            ctx2.globalAlpha = alpha !== undefined ? alpha : 1;
+            ctx2.fillStyle = color;
+            ctx2.fillRect(c * csize + 1, r * csize + 1, csize - 2, csize - 2);
+            // subtle highlight
+            ctx2.globalAlpha = (alpha !== undefined ? alpha : 1) * 0.4;
+            ctx2.fillStyle = '#ffffff';
+            ctx2.fillRect(c * csize + 2, r * csize + 2, csize - 4, 3);
+            ctx2.globalAlpha = 1;
+        }
+
+        function draw() {
+            const cw = cell();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Grid lines
+            ctx.strokeStyle = 'rgba(0,100,200,0.15)';
+            ctx.lineWidth = 1;
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath(); ctx.moveTo(0, r * cw); ctx.lineTo(COLS * cw, r * cw); ctx.stroke();
+            }
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath(); ctx.moveTo(c * cw, 0); ctx.lineTo(c * cw, ROWS * cw); ctx.stroke();
+            }
+
+            // Board cells
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c]) drawCell(ctx, r, c, COLORS[board[r][c]], 1, cw);
+                }
+            }
+
+            if (state === 'playing' || state === 'paused') {
+                // Ghost piece
+                const gr = ghostRow();
+                for (const [dr, dc] of current.cells) {
+                    drawCell(ctx, gr + dr, current.col + dc, COLORS[current.type], GHOST_ALPHA, cw);
+                }
+
+                // Current piece
+                for (const [dr, dc] of current.cells) {
+                    drawCell(ctx, current.row + dr, current.col + dc, COLORS[current.type], 1, cw);
+                }
+            }
+
+            // Next piece preview
+            drawNext();
+        }
+
+        function drawNext() {
+            const cw = 20;
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            nextCtx.fillStyle = 'rgba(0,10,30,0.5)';
+            nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            const cells = TETROMINOES[next.type];
+            // Center in the 4x4 preview area
+            const minR = Math.min(...cells.map(c => c[0]));
+            const maxR = Math.max(...cells.map(c => c[0]));
+            const minC = Math.min(...cells.map(c => c[1]));
+            const maxC = Math.max(...cells.map(c => c[1]));
+            const offR = Math.floor((3 - (maxR - minR)) / 2) - minR;
+            const offC = Math.floor((3 - (maxC - minC)) / 2) - minC;
+            for (const [dr, dc] of cells) {
+                drawCell(nextCtx, dr + offR, dc + offC, COLORS[next.type], 1, cw);
+            }
+        }
+
+        // ── HUD ────────────────────────────────────────────────────
+        function updateHUD() {
+            document.getElementById('score-val').textContent = score;
+            document.getElementById('level-val').textContent = level;
+            document.getElementById('lines-val').textContent = lines;
+        }
+
+        // ── Overlay ────────────────────────────────────────────────
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlaySub = document.getElementById('overlay-sub');
+        const overlayBtn = document.getElementById('overlay-btn');
+
+        function showOverlay(title, sub, btnText) {
+            overlayTitle.textContent = title;
+            overlaySub.textContent = sub;
+            overlayBtn.textContent = btnText;
+            overlay.style.display = 'flex';
+        }
+
+        function hideOverlay() {
+            overlay.style.display = 'none';
+        }
+
+        overlayBtn.addEventListener('click', () => {
+            if (state === 'idle' || state === 'over') init();
+        });
+
+        // ── Keyboard input ─────────────────────────────────────────
+        document.addEventListener('keydown', e => {
+            if (state === 'idle') { if (e.key === 'Enter' || e.key === ' ') init(); return; }
+            switch (e.key) {
+                case 'ArrowLeft':  e.preventDefault(); tryMove(-1); break;
+                case 'ArrowRight': e.preventDefault(); tryMove(1); break;
+                case 'ArrowDown':  e.preventDefault(); softDrop(); dropAccum = 0; break;
+                case 'ArrowUp':
+                case 'x': case 'X': e.preventDefault(); tryRotate(1); break;
+                case 'z': case 'Z': e.preventDefault(); tryRotate(-1); break;
+                case ' ':          e.preventDefault(); hardDrop(); break;
+                case 'p': case 'P':
+                    if (state === 'playing') {
+                        state = 'paused';
+                        showOverlay('PAUSED', 'Press P or Resume to continue', 'RESUME');
+                    } else if (state === 'paused') {
+                        state = 'playing';
+                        lastTime = null;
+                        hideOverlay();
+                        requestAnimationFrame(loop);
+                    }
+                    break;
+                case 'r': case 'R':
+                    init();
+                    break;
+            }
+            draw();
+        });
+
+        // ── Mobile controls ────────────────────────────────────────
+        function btnPress(id, action) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            let interval = null;
+            const doAction = () => { action(); draw(); };
+            btn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                doAction();
+                if (id === 'btn-left' || id === 'btn-right' || id === 'btn-down') {
+                    interval = setInterval(doAction, 120);
+                }
+            }, { passive: false });
+            btn.addEventListener('touchend', e => {
+                e.preventDefault();
+                if (interval) { clearInterval(interval); interval = null; }
+            }, { passive: false });
+            btn.addEventListener('click', doAction);
+        }
+
+        btnPress('btn-left',   () => tryMove(-1));
+        btnPress('btn-right',  () => tryMove(1));
+        btnPress('btn-down',   () => { softDrop(); dropAccum = 0; });
+        btnPress('btn-rotate', () => tryRotate(1));
+        btnPress('btn-drop',   () => hardDrop());
+
+        // Resume button in overlay also handles pause for mobile
+        overlayBtn.addEventListener('click', () => {
+            if (state === 'paused') {
+                state = 'playing';
+                lastTime = null;
+                hideOverlay();
+                requestAnimationFrame(loop);
+            }
+        });
+
+        // ── Touch swipe on canvas ──────────────────────────────────
+        let touchStart = null;
+        canvas.addEventListener('touchstart', e => {
+            e.preventDefault();
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }, { passive: false });
+        canvas.addEventListener('touchend', e => {
+            if (!touchStart) return;
+            const dx = e.changedTouches[0].clientX - touchStart.x;
+            const dy = e.changedTouches[0].clientY - touchStart.y;
+            const absDx = Math.abs(dx), absDy = Math.abs(dy);
+            if (absDx < 8 && absDy < 8) { tryRotate(1); }
+            else if (absDx > absDy) { tryMove(dx > 0 ? 1 : -1); }
+            else if (dy > 30) { hardDrop(); }
+            else if (dy < -10) { tryRotate(1); }
+            draw();
+            touchStart = null;
+        }, { passive: false });
+
+        // Initial draw
+        draw();
+        state = 'idle';
+    })();
+    </script>
+</body>
+</html>

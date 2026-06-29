@@ -34,6 +34,18 @@
       "prLinks": []
     },
     {
+      "id": "tetris",
+      "name": "Tetris",
+      "description": "Stack falling tetrominoes, clear lines, and chase a high score in this retro neon puzzle classic.",
+      "status": "Ready to Play",
+      "path": "./games/tetris",
+      "createdWith": "GitHub Copilot Coding Agent",
+      "model": "Claude Sonnet 4.5",
+      "prLinks": [
+        "https://github.com/rajbos/game-center/pull/30"
+      ]
+    },
+    {
       "id": "game-3",
       "name": "Head Ball",
       "description": "A one-on-one soccer game with Lamborghini cars! Score goals, unlock power-ups, and enjoy confetti celebrations.",
